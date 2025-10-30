@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { UploadCloud, PlusCircle, Loader2, CheckCircle, XCircle, AlertCircle, BookCopy, FileImage, ClipboardCheck, Trash2, Edit, Plus, X, Camera } from 'lucide-react';
+import { UploadCloud, PlusCircle, Loader2, CheckCircle, XCircle, AlertCircle, BookCopy, FileImage, ClipboardCheck, Trash2, Edit, Plus, X, Camera, RotateCcw } from 'lucide-react';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -464,7 +464,7 @@ export default function Home() {
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-2 gap-2">
                    <Button onClick={() => document.getElementById('file-upload')?.click()} className="w-full">
                        <UploadCloud className="mr-2 h-4 w-4" /> Enviar Arquivo
                    </Button>
@@ -499,6 +499,11 @@ export default function Home() {
                      </DialogContent>
                    </Dialog>
                 </div>
+                 {image && (
+                  <Button variant="outline" onClick={() => { setImage(null); setResults(null); }} className="w-full">
+                    <RotateCcw className="mr-2 h-4 w-4" /> Limpar Imagem
+                  </Button>
+                )}
                 <Button onClick={handleGrade} disabled={!image || isProcessing} className="w-full">
                   {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   {isProcessing ? 'Corrigindo...' : 'Corrigir Prova'}
