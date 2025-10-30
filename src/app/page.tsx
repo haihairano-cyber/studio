@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -19,7 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { UploadCloud, PlusCircle, Loader2, CheckCircle, XCircle, AlertCircle, BookCopy, FileImage, ClipboardCheck, Trash2, Edit, Plus, Minus } from 'lucide-react';
+import { UploadCloud, PlusCircle, Loader2, CheckCircle, XCircle, AlertCircle, BookCopy, FileImage, ClipboardCheck, Trash2, Edit, Plus, Minus, Camera } from 'lucide-react';
 import Image from 'next/image';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -51,6 +51,9 @@ export default function Home() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TestTemplate | null>(null);
   const { toast } = useToast();
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | undefined>(undefined);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -62,6 +65,36 @@ export default function Home() {
       console.error("Failed to load templates from localStorage", error);
     }
   }, []);
+
+  useEffect(() => {
+    if (isCameraOpen) {
+      const getCameraPermission = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          setHasCameraPermission(true);
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          setHasCameraPermission(false);
+          toast({
+            variant: 'destructive',
+            title: 'Camera Access Denied',
+            description: 'Please enable camera permissions in your browser settings to use this feature.',
+          });
+          setIsCameraOpen(false);
+        }
+      };
+      getCameraPermission();
+    } else {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+        videoRef.current.srcObject = null;
+      }
+    }
+  }, [isCameraOpen, toast]);
 
   const saveTemplates = (newTemplates: TestTemplate[]) => {
     setTemplates(newTemplates);
@@ -80,7 +113,7 @@ export default function Home() {
     },
   });
   
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'questions',
   });
@@ -93,11 +126,9 @@ export default function Home() {
         id: template.id,
         name: template.name,
         questions: template.answerKey.map((answer, i) => ({
-          points: template.points[i],
+          points: template.points?.[i] ?? 1,
           answer: answer,
-          // This is a simplification. If different questions have different options, this needs more complex logic.
-          // For now, we assume they all might have had the standard A-E options.
-          options: ['A', 'B', 'C', 'D', 'E'], 
+          options: ['A', 'B', 'C', 'D', 'E'],
         }))
       });
       setIsFormOpen(true);
@@ -149,6 +180,15 @@ export default function Home() {
       description: 'Gabarito apagado com sucesso.',
     });
   }
+  
+  const handleFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImage(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    setResults(null);
+  }
 
   const handleImageDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -163,15 +203,22 @@ export default function Home() {
       handleFile(event.target.files[0]);
     }
   };
-  
-  const handleFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImage(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-    setResults(null);
-  }
+
+  const takePicture = () => {
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        const dataUri = canvas.toDataURL('image/jpeg');
+        setImage(dataUri);
+        setResults(null);
+      }
+      setIsCameraOpen(false);
+    }
+  };
 
   const handleGrade = async () => {
     if (!image || !selectedTemplateId) return;
@@ -388,6 +435,41 @@ export default function Home() {
                     </div>
                   )}
                 </div>
+                <div className="flex gap-2">
+                   <Button onClick={() => document.getElementById('file-upload')?.click()} className="w-full">
+                      <UploadCloud className="mr-2 h-4 w-4" /> Enviar Arquivo
+                   </Button>
+                   <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full">
+                        <Camera className="mr-2 h-4 w-4" /> Usar Câmera
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-xl">
+                      <DialogHeader>
+                        <DialogTitle>Tirar Foto</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay muted />
+                        {hasCameraPermission === false && (
+                           <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Câmera não acessível</AlertTitle>
+                            <AlertDescription>
+                              Por favor, permita o acesso à câmera nas configurações do seu navegador.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                      </div>
+                       <DialogFooter>
+                         <Button variant="secondary" onClick={() => setIsCameraOpen(false)}>Cancelar</Button>
+                         <Button onClick={takePicture} disabled={!hasCameraPermission}>
+                           <Camera className="mr-2 h-4 w-4" /> Tirar Foto
+                         </Button>
+                       </DialogFooter>
+                    </DialogContent>
+                   </Dialog>
+                </div>
                 <Button onClick={handleGrade} disabled={!image || isProcessing} className="w-full">
                   {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   {isProcessing ? 'Corrigindo...' : 'Corrigir Prova'}
@@ -490,5 +572,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
