@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { v4 as uuidv4 } from 'uuid';
@@ -15,18 +15,32 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { UploadCloud, PlusCircle, Loader2, CheckCircle, XCircle, AlertCircle, BookCopy, FileImage, ClipboardCheck } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { UploadCloud, PlusCircle, Loader2, CheckCircle, XCircle, AlertCircle, BookCopy, FileImage, ClipboardCheck, Trash2, Edit, Plus, Minus } from 'lucide-react';
 import Image from 'next/image';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+
+const questionSchema = z.object({
+  points: z.coerce.number().min(0, 'Points must be non-negative.'),
+  answer: z.string().min(1, 'An answer must be selected.'),
+  options: z.array(z.string()).min(2, 'At least two options are required.'),
+});
 
 const templateFormSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(1, 'O nome do gabarito é obrigatório.'),
-  answerKey: z.string().min(1, 'A chave de respostas é obrigatória. Use vírgulas para separar as respostas (ex: A,B,C).'),
-  points: z.string().min(1, 'Os pontos para cada questão são obrigatórios. Use vírgulas para separar (ex: 1,1,2).'),
+  questions: z.array(questionSchema).min(1, 'At least one question is required.'),
 });
+
+const defaultQuestion = {
+  points: 1,
+  answer: 'A',
+  options: ['A', 'B', 'C', 'D', 'E'],
+};
 
 export default function Home() {
   const [templates, setTemplates] = useState<TestTemplate[]>([]);
@@ -35,6 +49,7 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [results, setResults] = useState<{ grade: GradingResult; details: DetailedResult[] } | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<TestTemplate | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -59,36 +74,80 @@ export default function Home() {
 
   const form = useForm<z.infer<typeof templateFormSchema>>({
     resolver: zodResolver(templateFormSchema),
-    defaultValues: { name: '', answerKey: '', points: '' },
+    defaultValues: {
+      name: '',
+      questions: [defaultQuestion],
+    },
+  });
+  
+  const { fields, append, remove, update } = useFieldArray({
+    control: form.control,
+    name: 'questions',
   });
 
-  function onSubmit(values: z.infer<typeof templateFormSchema>) {
-    const answerKey = values.answerKey.split(',').map(item => item.trim().toUpperCase());
-    const points = values.points.split(',').map(item => parseFloat(item.trim()));
-
-    if (answerKey.length !== points.length) {
-      form.setError('points', {
-        type: 'manual',
-        message: 'O número de pontos deve ser igual ao número de questões.',
+  function openEditForm(templateId: string) {
+    const template = templates.find(t => t.id === templateId);
+    if (template) {
+      setEditingTemplate(template);
+      form.reset({
+        id: template.id,
+        name: template.name,
+        questions: template.answerKey.map((answer, i) => ({
+          points: template.points[i],
+          answer: answer,
+          // This is a simplification. If different questions have different options, this needs more complex logic.
+          // For now, we assume they all might have had the standard A-E options.
+          options: ['A', 'B', 'C', 'D', 'E'], 
+        }))
       });
-      return;
+      setIsFormOpen(true);
     }
+  }
 
-    const newTemplate: TestTemplate = {
-      id: uuidv4(),
-      name: values.name,
-      answerKey: answerKey,
-      points: points,
-    };
-    const updatedTemplates = [...templates, newTemplate];
-    saveTemplates(updatedTemplates);
-    toast({
-      title: 'Sucesso!',
-      description: 'Gabarito criado com sucesso.',
+  function openNewForm() {
+    setEditingTemplate(null);
+    form.reset({
+      id: undefined,
+      name: '',
+      questions: [defaultQuestion],
     });
+    setIsFormOpen(true);
+  }
+
+
+  function onSubmit(values: z.infer<typeof templateFormSchema>) {
+    const newTemplate: TestTemplate = {
+      id: values.id || uuidv4(),
+      name: values.name,
+      answerKey: values.questions.map(q => q.answer),
+      points: values.questions.map(q => q.points),
+    };
+
+    let updatedTemplates;
+    if (values.id) {
+      updatedTemplates = templates.map(t => t.id === values.id ? newTemplate : t);
+      toast({ title: 'Sucesso!', description: 'Gabarito atualizado com sucesso.' });
+    } else {
+      updatedTemplates = [...templates, newTemplate];
+      toast({ title: 'Sucesso!', description: 'Gabarito criado com sucesso.' });
+    }
+    
+    saveTemplates(updatedTemplates);
     form.reset();
     setIsFormOpen(false);
     setSelectedTemplateId(newTemplate.id);
+  }
+  
+  const handleDeleteTemplate = (templateId: string) => {
+    const updatedTemplates = templates.filter(t => t.id !== templateId);
+    saveTemplates(updatedTemplates);
+    if (selectedTemplateId === templateId) {
+        setSelectedTemplateId('');
+    }
+    toast({
+      title: 'Sucesso!',
+      description: 'Gabarito apagado com sucesso.',
+    });
   }
 
   const handleImageDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
@@ -169,71 +228,136 @@ export default function Home() {
                   ))}
                 </SelectContent>
               </Select>
-              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Criar Novo Gabarito
+               {selectedTemplateId && (
+                <div className="flex gap-2">
+                   <Button variant="outline" size="icon" onClick={() => openEditForm(selectedTemplateId)}>
+                    <Edit className="h-4 w-4" />
+                    <span className="sr-only">Editar</span>
                   </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
-                  <DialogHeader>
-                    <DialogTitle>Criar Novo Gabarito</DialogTitle>
-                    <DialogDescription>
-                      Preencha as informações para criar um novo modelo de prova.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Nome do Gabarito</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Ex: Prova de Biologia 1º Trimestre" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="answerKey"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Respostas Corretas</FormLabel>
-                            <FormControl>
-                              <Textarea placeholder="Ex: A, B, C, D, A" {...field} />
-                            </FormControl>
-                             <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                       <FormField
-                        control={form.control}
-                        name="points"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Pontos por Questão</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Ex: 1, 1, 2, 1, 1" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <DialogFooter>
-                        <DialogClose asChild><Button type="button" variant="ghost">Cancelar</Button></DialogClose>
-                        <Button type="submit">Salvar Gabarito</Button>
-                      </DialogFooter>
-                    </form>
-                  </Form>
-                </DialogContent>
-              </Dialog>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="icon">
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Apagar</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Essa ação não pode ser desfeita. Isso irá apagar permanentemente o gabarito.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteTemplate(selectedTemplateId)}>Apagar</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              )}
+              <Button variant="outline" onClick={openNewForm}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Criar Novo
+              </Button>
             </CardContent>
           </Card>
+          
+          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+            <DialogContent className="max-w-3xl h-[90vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle>{editingTemplate ? 'Editar' : 'Criar Novo'} Gabarito</DialogTitle>
+                <DialogDescription>
+                  Preencha as informações para {editingTemplate ? 'editar o' : 'criar um novo'} modelo de prova.
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 flex-grow overflow-hidden flex flex-col">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome do Gabarito</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ex: Prova de Biologia 1º Trimestre" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-6">
+                    <h3 className="text-lg font-medium">Questões</h3>
+                    {fields.map((field, index) => (
+                      <Card key={field.id} className="relative p-4">
+                         <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-2 right-2 h-6 w-6"
+                            onClick={() => remove(index)}
+                            disabled={fields.length <= 1}
+                          >
+                            <XCircle className="h-4 w-4 text-destructive" />
+                          </Button>
+                        <div className="flex gap-4 items-start">
+                          <div className="font-bold text-lg">{index + 1}.</div>
+                          <div className="flex-grow space-y-4">
+                            <FormField
+                              control={form.control}
+                              name={`questions.${index}.answer`}
+                              render={({ field: radioField }) => (
+                                <FormItem>
+                                  <FormLabel>Resposta Correta</FormLabel>
+                                  <FormControl>
+                                    <RadioGroup
+                                      onValueChange={radioField.onChange}
+                                      defaultValue={radioField.value}
+                                      className="flex flex-wrap gap-4"
+                                    >
+                                      {form.watch(`questions.${index}.options`).map((option) => (
+                                        <FormItem key={option} className="flex items-center space-x-2">
+                                          <FormControl>
+                                            <RadioGroupItem value={option} id={`${field.id}-${option}`}/>
+                                          </FormControl>
+                                          <Label htmlFor={`${field.id}-${option}`}>{option}</Label>
+                                        </FormItem>
+                                      ))}
+                                    </RadioGroup>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`questions.${index}.points`}
+                              render={({ field: pointsField }) => (
+                                <FormItem>
+                                  <FormLabel>Pontos</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" step="0.5" {...pointsField} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                    <Button type="button" variant="outline" onClick={() => append(defaultQuestion)}>
+                        <Plus className="mr-2 h-4 w-4" /> Adicionar Questão
+                    </Button>
+                  </div>
+                   <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="ghost">Cancelar</Button></DialogClose>
+                    <Button type="submit">Salvar Gabarito</Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
 
           {selectedTemplate && (
             <Card className="shadow-lg animation-fade-in-up" style={{animationDelay: '0.1s'}}>
@@ -366,3 +490,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
