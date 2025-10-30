@@ -22,7 +22,7 @@ import { UploadCloud, PlusCircle, Loader2, CheckCircle, XCircle, AlertCircle, Bo
 import Image from 'next/image';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarTrigger, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction } from '@/components/ui/sidebar';
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction } from '@/components/ui/sidebar';
 
 const questionSchema = z.object({
   points: z.coerce.number().min(0, 'Points must be non-negative.'),
@@ -321,7 +321,6 @@ export default function Home() {
                  <Card className="shadow-lg animation-fade-in-up">
                     <CardHeader>
                       <div className="flex items-center gap-3">
-                        <SidebarTrigger />
                         <BookCopy className="w-8 h-8 text-primary" />
                         <div>
                           <CardTitle className="text-2xl font-headline">Passo 1: Gabarito</CardTitle>
@@ -617,5 +616,3 @@ export default function Home() {
     </SidebarProvider>
   );
 }
-
-    
