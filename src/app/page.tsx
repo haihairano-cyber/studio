@@ -254,7 +254,7 @@ export default function Home() {
       <Header />
       <main className="flex-grow container mx-auto p-4 md:p-8">
         <div className="max-w-4xl mx-auto space-y-8">
-          <Card className="shadow-lg animation-fade-in-up">
+          <Card className="shadow-lg animation-fade-in-up bg-card/80 backdrop-blur-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -436,7 +436,7 @@ export default function Home() {
           </Dialog>
 
           {selectedTemplate && (
-            <Card className="shadow-lg animation-fade-in-up" style={{animationDelay: '0.1s'}}>
+            <Card className="shadow-lg animation-fade-in-up bg-card/80 backdrop-blur-sm" style={{animationDelay: '0.1s'}}>
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <FileImage className="w-8 h-8 text-primary" />
@@ -448,7 +448,7 @@ export default function Home() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div 
-                  className="relative flex items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted transition-colors"
+                  className="relative flex items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
                   onDrop={handleImageDrop}
                   onDragOver={(e) => e.preventDefault()}
                   onClick={() => document.getElementById('file-upload')?.click()}
@@ -519,7 +519,7 @@ export default function Home() {
           )}
 
           {results && (
-            <Card className="shadow-lg animation-fade-in-up" style={{animationDelay: '0.2s'}}>
+            <Card className="shadow-lg animation-fade-in-up bg-card/80 backdrop-blur-sm" style={{animationDelay: '0.2s'}}>
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <ClipboardCheck className="w-8 h-8 text-primary" />
@@ -532,7 +532,7 @@ export default function Home() {
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   <h3 className="font-semibold text-lg">Resumo da Pontuação</h3>
-                  <div className="p-4 bg-muted rounded-lg space-y-4">
+                  <div className="p-4 bg-muted/50 rounded-lg space-y-4">
                     <div>
                       <div className="flex justify-between mb-1">
                         <span className="font-medium">Pontuação Final ({results.grade.earnedPoints} / {results.grade.totalPoints} pts)</span>
@@ -541,15 +541,15 @@ export default function Home() {
                       <Progress value={results.grade.score} className="h-2" />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                        <div className="p-3 bg-background rounded-md">
+                        <div className="p-3 bg-background/50 rounded-md">
                             <p className="text-sm text-muted-foreground">Total de Questões</p>
                             <p className="text-2xl font-bold">{results.grade.totalQuestions}</p>
                         </div>
-                        <div className="p-3 bg-background rounded-md">
+                        <div className="p-3 bg-background/50 rounded-md">
                             <p className="text-sm text-muted-foreground">Corretas</p>
-                            <p className="text-2xl font-bold text-green-600">{results.grade.correctAnswers}</p>
+                            <p className="text-2xl font-bold text-green-400">{results.grade.correctAnswers}</p>
                         </div>
-                        <div className="p-3 bg-background rounded-md">
+                        <div className="p-3 bg-background/50 rounded-md">
                             <p className="text-sm text-muted-foreground">Incorretas / Anuladas</p>
                             <p className="text-2xl font-bold text-destructive">{results.grade.incorrectAnswers}</p>
                         </div>
@@ -572,16 +572,16 @@ export default function Home() {
                       </TableHeader>
                       <TableBody>
                         {results.details.map((item) => (
-                          <TableRow key={item.question} className={!item.isCorrect ? (item.studentAnswer === 'ANULADA' ? 'bg-amber-400/20' : 'bg-destructive/10') : ''}>
+                          <TableRow key={item.question} className={!item.isCorrect ? (item.studentAnswer === 'ANULADA' ? 'bg-amber-400/20' : 'bg-destructive/20') : ''}>
                             <TableCell className="font-medium">{item.question}</TableCell>
                             <TableCell>{item.studentAnswer || '-'}</TableCell>
                             <TableCell>{item.correctAnswer}</TableCell>
                             <TableCell>{item.points}</TableCell>
                             <TableCell className="text-right">
                               {item.studentAnswer === 'ANULADA' ? (
-                                <AlertOctagon className="h-5 w-5 text-amber-500 inline-block" />
+                                <AlertOctagon className="h-5 w-5 text-amber-400 inline-block" />
                               ) : item.isCorrect ? (
-                                <CheckCircle className="h-5 w-5 text-green-600 inline-block" />
+                                <CheckCircle className="h-5 w-5 text-green-400 inline-block" />
                               ) : (
                                 <XCircle className="h-5 w-5 text-destructive inline-block" />
                               )}
