@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { UploadCloud, PlusCircle, Loader2, CheckCircle, XCircle, AlertCircle, BookCopy, FileImage, ClipboardCheck, Trash2, Edit, Plus, X, Camera, RotateCcw } from 'lucide-react';
+import { UploadCloud, PlusCircle, Loader2, CheckCircle, XCircle, AlertCircle, BookCopy, FileImage, ClipboardCheck, Trash2, Edit, Plus, X, Camera, RotateCcw, AlertOctagon } from 'lucide-react';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -550,7 +550,7 @@ export default function Home() {
                             <p className="text-2xl font-bold text-green-600">{results.grade.correctAnswers}</p>
                         </div>
                         <div className="p-3 bg-background rounded-md">
-                            <p className="text-sm text-muted-foreground">Incorretas</p>
+                            <p className="text-sm text-muted-foreground">Incorretas / Anuladas</p>
                             <p className="text-2xl font-bold text-destructive">{results.grade.incorrectAnswers}</p>
                         </div>
                     </div>
@@ -572,15 +572,19 @@ export default function Home() {
                       </TableHeader>
                       <TableBody>
                         {results.details.map((item) => (
-                          <TableRow key={item.question} className={!item.isCorrect ? 'bg-destructive/10' : ''}>
+                          <TableRow key={item.question} className={!item.isCorrect ? (item.studentAnswer === 'ANULADA' ? 'bg-amber-400/20' : 'bg-destructive/10') : ''}>
                             <TableCell className="font-medium">{item.question}</TableCell>
                             <TableCell>{item.studentAnswer || '-'}</TableCell>
                             <TableCell>{item.correctAnswer}</TableCell>
                             <TableCell>{item.points}</TableCell>
                             <TableCell className="text-right">
-                              {item.isCorrect ? 
-                                <CheckCircle className="h-5 w-5 text-green-600 inline-block" /> : 
-                                <XCircle className="h-5 w-5 text-destructive inline-block" />}
+                              {item.studentAnswer === 'ANULADA' ? (
+                                <AlertOctagon className="h-5 w-5 text-amber-500 inline-block" />
+                              ) : item.isCorrect ? (
+                                <CheckCircle className="h-5 w-5 text-green-600 inline-block" />
+                              ) : (
+                                <XCircle className="h-5 w-5 text-destructive inline-block" />
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
