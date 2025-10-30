@@ -1,0 +1,30 @@
+'use server';
+
+import { processImageAndExtractAnswers } from '@/ai/flows/process-image-and-extract-answers';
+import { calculateGrades } from '@/ai/flows/calculate-grades-from-processed-answers';
+import type { GradingResult, DetailedResult } from '@/lib/types';
+
+export async function gradeExamAction(
+  photoDataUri: string,
+  answerKey: string[]
+): Promise<{ grade: GradingResult; details: DetailedResult[] } | null> {
+  try {
+    const { extractedAnswers } = await processImageAndExtractAnswers({ photoDataUri });
+    const grade = await calculateGrades({ extractedAnswers, answerKey });
+
+    const details: DetailedResult[] = answerKey.map((correctAnswer, index) => {
+      const studentAnswer = extractedAnswers[index] || '';
+      return {
+        question: index + 1,
+        studentAnswer: studentAnswer,
+        correctAnswer: correctAnswer,
+        isCorrect: studentAnswer === correctAnswer,
+      };
+    });
+
+    return { grade, details };
+  } catch (error) {
+    console.error('Error in gradeExamAction:', error);
+    return null;
+  }
+}

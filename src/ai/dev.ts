@@ -1,1 +1,5 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/process-image-and-extract-answers.ts';
+import '@/ai/flows/calculate-grades-from-processed-answers.ts';
