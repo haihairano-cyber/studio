@@ -22,3 +22,13 @@ export interface DetailedResult {
   points: number;
   earnedPoints: number;
 }
+
+export interface SavedExam {
+  id: string;
+  studentName: string;
+  templateName: string;
+  grade: GradingResult;
+  details: DetailedResult[];
+  image: string;
+  correctionDate: string;
+}

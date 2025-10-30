@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { gradeExamAction } from '@/app/actions';
-import type { TestTemplate, GradingResult, DetailedResult } from '@/lib/types';
+import type { TestTemplate, GradingResult, DetailedResult, SavedExam } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/header';
 import { Button } from '@/components/ui/button';
@@ -18,11 +18,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { UploadCloud, PlusCircle, Loader2, CheckCircle, XCircle, AlertCircle, BookCopy, FileImage, ClipboardCheck, Trash2, Edit, Plus, X, Camera, RotateCcw, AlertOctagon } from 'lucide-react';
+import { UploadCloud, PlusCircle, Loader2, CheckCircle, XCircle, AlertCircle, BookCopy, FileImage, ClipboardCheck, Trash2, Edit, Plus, X, Camera, RotateCcw, AlertOctagon, Save } from 'lucide-react';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const questionSchema = z.object({
   points: z.coerce.number().min(0, 'Points must be non-negative.'),
@@ -44,6 +45,7 @@ const defaultQuestion = {
 
 export default function Home() {
   const [templates, setTemplates] = useState<TestTemplate[]>([]);
+  const [savedExams, setSavedExams] = useState<SavedExam[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [image, setImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -54,6 +56,8 @@ export default function Home() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | undefined>(undefined);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isSaveExamDialogOpen, setIsSaveExamDialogOpen] = useState(false);
+  const [studentName, setStudentName] = useState('');
 
   useEffect(() => {
     try {
@@ -61,8 +65,12 @@ export default function Home() {
       if (storedTemplates) {
         setTemplates(JSON.parse(storedTemplates));
       }
+      const storedExams = window.localStorage.getItem('provaFacilSavedExams');
+      if (storedExams) {
+        setSavedExams(JSON.parse(storedExams));
+      }
     } catch (error) {
-      console.error("Failed to load templates from localStorage", error);
+      console.error("Failed to load data from localStorage", error);
     }
   }, []);
 
@@ -102,6 +110,15 @@ export default function Home() {
       window.localStorage.setItem('provaFacilTemplates', JSON.stringify(newTemplates));
     } catch (error) {
        console.error("Failed to save templates to localStorage", error);
+    }
+  };
+  
+  const saveExams = (newExams: SavedExam[]) => {
+    setSavedExams(newExams);
+    try {
+      window.localStorage.setItem('provaFacilSavedExams', JSON.stringify(newExams));
+    } catch (error) {
+      console.error("Failed to save exams to localStorage", error);
     }
   };
 
@@ -246,6 +263,44 @@ export default function Home() {
       setIsProcessing(false);
     }
   };
+  
+  const handleSaveExam = () => {
+    if (!results || !studentName || !image || !selectedTemplate) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao Salvar',
+        description: 'Preencha o nome do aluno para salvar a correção.',
+      });
+      return;
+    }
+
+    const newSavedExam: SavedExam = {
+      id: uuidv4(),
+      studentName,
+      templateName: selectedTemplate.name,
+      grade: results.grade,
+      details: results.details,
+      image,
+      correctionDate: new Date().toISOString(),
+    };
+
+    saveExams([newSavedExam, ...savedExams]);
+    toast({
+      title: 'Correção Salva!',
+      description: `A prova de ${studentName} foi salva com sucesso.`,
+    });
+    setIsSaveExamDialogOpen(false);
+    setStudentName('');
+  };
+  
+  const handleDeleteSavedExam = (examId: string) => {
+    const updatedExams = savedExams.filter(exam => exam.id !== examId);
+    saveExams(updatedExams);
+    toast({
+      title: 'Correção Apagada',
+      description: 'A correção foi apagada com sucesso.',
+    });
+  };
 
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
 
@@ -268,14 +323,14 @@ export default function Home() {
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button variant="outline">
-                        <Edit className="mr-2 h-4 w-4" /> Editar
+                        <Edit className="mr-2 h-4 w-4" /> Gerenciar
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Gerenciar Gabaritos</DialogTitle>
                       </DialogHeader>
-                      <div className="space-y-4">
+                      <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
                         {templates.map(template => (
                           <div key={template.id} className="flex items-center justify-between p-2 rounded-md border">
                             <span>{template.name}</span>
@@ -521,12 +576,40 @@ export default function Home() {
           {results && (
             <Card className="shadow-lg animation-fade-in-up bg-card/80 backdrop-blur-sm" style={{animationDelay: '0.2s'}}>
               <CardHeader>
-                <div className="flex items-center gap-3">
-                  <ClipboardCheck className="w-8 h-8 text-primary" />
-                  <div>
-                    <CardTitle className="text-2xl font-headline">Passo 3: Resultados</CardTitle>
-                    <CardDescription>Confira o desempenho do aluno.</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <ClipboardCheck className="w-8 h-8 text-primary" />
+                    <div>
+                      <CardTitle className="text-2xl font-headline">Passo 3: Resultados</CardTitle>
+                      <CardDescription>Confira o desempenho do aluno.</CardDescription>
+                    </div>
                   </div>
+                   <Dialog open={isSaveExamDialogOpen} onOpenChange={setIsSaveExamDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">
+                        <Save className="mr-2 h-4 w-4" /> Salvar Correção
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Salvar Correção</DialogTitle>
+                        <DialogDescription>Digite o nome do aluno para salvar o resultado da prova.</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <Label htmlFor="studentName">Nome do Aluno</Label>
+                        <Input 
+                          id="studentName"
+                          value={studentName}
+                          onChange={(e) => setStudentName(e.target.value)}
+                          placeholder="Ex: João da Silva"
+                        />
+                      </div>
+                      <DialogFooter>
+                        <Button variant="ghost" onClick={() => setIsSaveExamDialogOpen(false)}>Cancelar</Button>
+                        <Button onClick={handleSaveExam}>Salvar</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -564,7 +647,7 @@ export default function Home() {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-[80px]">Questão</TableHead>
-                          <TableHead>Sua Resposta</TableHead>
+                          <TableHead>Resposta do Aluno</TableHead>
                           <TableHead>Gabarito</TableHead>
                           <TableHead>Pontos</TableHead>
                           <TableHead className="text-right">Resultado</TableHead>
@@ -595,6 +678,110 @@ export default function Home() {
               </CardContent>
             </Card>
           )}
+
+          {savedExams.length > 0 && (
+            <Card className="shadow-lg animation-fade-in-up bg-card/80 backdrop-blur-sm" style={{animationDelay: '0.3s'}}>
+              <CardHeader>
+                  <CardTitle className="text-2xl font-headline">Correções Salvas</CardTitle>
+                  <CardDescription>Veja as provas que você já corrigiu e salvou.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                 <Accordion type="single" collapsible className="w-full">
+                    {savedExams.map((exam) => (
+                      <AccordionItem value={exam.id} key={exam.id}>
+                        <AccordionTrigger>
+                          <div className="flex justify-between w-full pr-4">
+                            <span className='font-bold'>{exam.studentName}</span>
+                            <span className='text-sm text-muted-foreground'>{new Date(exam.correctionDate).toLocaleDateString('pt-BR')}</span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="space-y-6">
+                           <div className="flex flex-col md:flex-row gap-6">
+                              <div className="w-full md:w-1/3">
+                                <h4 className="font-semibold mb-2">Cartão Resposta</h4>
+                                 <div className="relative aspect-[3/4] rounded-md overflow-hidden border">
+                                    <Image src={exam.image} alt={`Prova de ${exam.studentName}`} fill className="object-contain" />
+                                 </div>
+                              </div>
+                              <div className="w-full md:w-2/3 space-y-4">
+                                <h4 className="font-semibold">Resumo</h4>
+                                 <div className="p-4 bg-muted/50 rounded-lg space-y-4">
+                                    <div>
+                                      <div className="flex justify-between mb-1">
+                                        <span className="font-medium">Pontuação Final ({exam.grade.earnedPoints} / {exam.grade.totalPoints} pts)</span>
+                                        <span className="font-bold text-primary">{exam.grade.score.toFixed(1)}%</span>
+                                      </div>
+                                      <Progress value={exam.grade.score} className="h-2" />
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-center">
+                                      <div className="p-2 bg-background/50 rounded-md">
+                                        <p className="text-xs text-muted-foreground">Corretas</p>
+                                        <p className="text-lg font-bold text-green-400">{exam.grade.correctAnswers}</p>
+                                      </div>
+                                      <div className="p-2 bg-background/50 rounded-md">
+                                        <p className="text-xs text-muted-foreground">Incorretas</p>
+                                        <p className="text-lg font-bold text-destructive">{exam.grade.incorrectAnswers}</p>
+                                      </div>
+                                      <div className="p-2 bg-background/50 rounded-md">
+                                        <p className="text-xs text-muted-foreground">Total</p>
+                                        <p className="text-lg font-bold">{exam.grade.totalQuestions}</p>
+                                      </div>
+                                    </div>
+                                 </div>
+                                <h4 className="font-semibold">Respostas Detalhadas</h4>
+                                 <div className="border rounded-lg overflow-auto max-h-60">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>Q</TableHead>
+                                        <TableHead>Aluno</TableHead>
+                                        <TableHead>Gabarito</TableHead>
+                                        <TableHead className='text-right'>Resultado</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {exam.details.map((item) => (
+                                        <TableRow key={item.question} className={!item.isCorrect ? (item.studentAnswer === 'ANULADA' ? 'bg-amber-400/20' : 'bg-destructive/20') : ''}>
+                                          <TableCell>{item.question}</TableCell>
+                                          <TableCell>{item.studentAnswer || '-'}</TableCell>
+                                          <TableCell>{item.correctAnswer}</TableCell>
+                                          <TableCell className="text-right">
+                                            {item.studentAnswer === 'ANULADA' ? <AlertOctagon className="h-5 w-5 text-amber-400 inline-block" /> : item.isCorrect ? <CheckCircle className="h-5 w-5 text-green-400 inline-block" /> : <XCircle className="h-5 w-5 text-destructive inline-block" />}
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              </div>
+                           </div>
+                           <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="sm">
+                                  <Trash2 className="mr-2 h-4 w-4" /> Apagar Correção
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Essa ação não pode ser desfeita. Isso irá apagar permanentemente a correção da prova de {exam.studentName}.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteSavedExam(exam.id)}>Apagar</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                 </Accordion>
+              </CardContent>
+            </Card>
+          )}
+
         </div>
       </main>
     </div>
