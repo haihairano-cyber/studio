@@ -25,6 +25,7 @@ import Image from 'next/image';
 const templateFormSchema = z.object({
   name: z.string().min(1, 'O nome do gabarito é obrigatório.'),
   answerKey: z.string().min(1, 'A chave de respostas é obrigatória. Use vírgulas para separar as respostas (ex: A,B,C).'),
+  points: z.string().min(1, 'Os pontos para cada questão são obrigatórios. Use vírgulas para separar (ex: 1,1,2).'),
 });
 
 export default function Home() {
@@ -58,14 +59,26 @@ export default function Home() {
 
   const form = useForm<z.infer<typeof templateFormSchema>>({
     resolver: zodResolver(templateFormSchema),
-    defaultValues: { name: '', answerKey: '' },
+    defaultValues: { name: '', answerKey: '', points: '' },
   });
 
   function onSubmit(values: z.infer<typeof templateFormSchema>) {
+    const answerKey = values.answerKey.split(',').map(item => item.trim().toUpperCase());
+    const points = values.points.split(',').map(item => parseFloat(item.trim()));
+
+    if (answerKey.length !== points.length) {
+      form.setError('points', {
+        type: 'manual',
+        message: 'O número de pontos deve ser igual ao número de questões.',
+      });
+      return;
+    }
+
     const newTemplate: TestTemplate = {
       id: uuidv4(),
       name: values.name,
-      answerKey: values.answerKey.split(',').map(item => item.trim().toUpperCase()),
+      answerKey: answerKey,
+      points: points,
     };
     const updatedTemplates = [...templates, newTemplate];
     saveTemplates(updatedTemplates);
@@ -110,7 +123,7 @@ export default function Home() {
     setResults(null);
 
     try {
-      const result = await gradeExamAction(image, template.answerKey);
+      const result = await gradeExamAction(image, template.answerKey, template.points);
       if (result && result.grade) {
         setResults(result);
       } else {
@@ -198,6 +211,19 @@ export default function Home() {
                           </FormItem>
                         )}
                       />
+                       <FormField
+                        control={form.control}
+                        name="points"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Pontos por Questão</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Ex: 1, 1, 2, 1, 1" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       <DialogFooter>
                         <DialogClose asChild><Button type="button" variant="ghost">Cancelar</Button></DialogClose>
                         <Button type="submit">Salvar Gabarito</Button>
@@ -269,14 +295,14 @@ export default function Home() {
                   <div className="p-4 bg-muted rounded-lg space-y-4">
                      <div>
                       <div className="flex justify-between mb-1">
-                        <span className="font-medium">Pontuação Final</span>
+                        <span className="font-medium">Pontuação Final ({results.grade.earnedPoints} / {results.grade.totalPoints} pts)</span>
                         <span className="font-bold text-primary">{results.grade.score.toFixed(1)}%</span>
                       </div>
                       <Progress value={results.grade.score} className="h-2" />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                         <div className="p-3 bg-background rounded-md">
-                            <p className="text-sm text-muted-foreground">Total</p>
+                            <p className="text-sm text-muted-foreground">Total de Questões</p>
                             <p className="text-2xl font-bold">{results.grade.totalQuestions}</p>
                         </div>
                         <div className="p-3 bg-background rounded-md">
@@ -300,6 +326,7 @@ export default function Home() {
                           <TableHead className="w-[80px]">Questão</TableHead>
                           <TableHead>Sua Resposta</TableHead>
                           <TableHead>Gabarito</TableHead>
+                          <TableHead>Pontos</TableHead>
                           <TableHead className="text-right">Resultado</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -309,6 +336,7 @@ export default function Home() {
                             <TableCell className="font-medium">{item.question}</TableCell>
                             <TableCell>{item.studentAnswer || '-'}</TableCell>
                             <TableCell>{item.correctAnswer}</TableCell>
+                            <TableCell>{item.points}</TableCell>
                             <TableCell className="text-right">
                               {item.isCorrect ? 
                                 <CheckCircle className="h-5 w-5 text-green-600 inline-block" /> : 

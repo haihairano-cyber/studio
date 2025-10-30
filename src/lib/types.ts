@@ -2,6 +2,7 @@ export interface TestTemplate {
   id: string;
   name: string;
   answerKey: string[];
+  points: number[];
 }
 
 export interface GradingResult {
@@ -9,6 +10,8 @@ export interface GradingResult {
   incorrectAnswers: number;
   totalQuestions: number;
   score: number;
+  totalPoints: number;
+  earnedPoints: number;
 }
 
 export interface DetailedResult {
@@ -16,4 +19,6 @@ export interface DetailedResult {
   studentAnswer: string;
   correctAnswer: string;
   isCorrect: boolean;
+  points: number;
+  earnedPoints: number;
 }
