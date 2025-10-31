@@ -311,7 +311,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto space-y-8">
           <Card className="shadow-lg animation-fade-in-up bg-card/80 backdrop-blur-sm">
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <BookCopy className="w-8 h-8 text-primary" />
                   <div>
@@ -319,7 +319,7 @@ export default function Home() {
                     <CardDescription>Selecione um gabarito ou crie um novo para começar.</CardDescription>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 self-end sm:self-center">
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button variant="outline">
