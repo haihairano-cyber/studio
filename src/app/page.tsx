@@ -24,24 +24,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { useSettings } from '@/hooks/use-settings';
 
 const questionSchema = z.object({
   points: z.coerce.number().min(0, 'Points must be non-negative.'),
   answer: z.string().min(1, 'An answer must be selected.'),
   options: z.array(z.string()).min(2, 'At least two options are required.'),
 });
-
-const templateFormSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(1, 'O nome do gabarito é obrigatório.'),
-  questions: z.array(questionSchema).min(1, 'At least one question is required.'),
-});
-
-const defaultQuestion = {
-  points: 1,
-  answer: 'A',
-  options: ['A', 'B', 'C', 'D', 'E'],
-};
 
 export default function Home() {
   const [templates, setTemplates] = useState<TestTemplate[]>([]);
@@ -58,6 +47,19 @@ export default function Home() {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isSaveExamDialogOpen, setIsSaveExamDialogOpen] = useState(false);
   const [studentName, setStudentName] = useState('');
+  const { t } = useSettings();
+
+  const templateFormSchema = z.object({
+    id: z.string().optional(),
+    name: z.string().min(1, t('templateNameRequired')),
+    questions: z.array(questionSchema).min(1, t('atLeastOneQuestion')),
+  });
+
+  const defaultQuestion = {
+    points: 1,
+    answer: 'A',
+    options: ['A', 'B', 'C', 'D', 'E'],
+  };
 
   useEffect(() => {
     try {
@@ -88,8 +90,8 @@ export default function Home() {
           setHasCameraPermission(false);
           toast({
             variant: 'destructive',
-            title: 'Camera Access Denied',
-            description: 'Please enable camera permissions in your browser settings to use this feature.',
+            title: t('cameraAccessDenied'),
+            description: t('enableCamera'),
           });
           setIsCameraOpen(false);
         }
@@ -102,7 +104,7 @@ export default function Home() {
         videoRef.current.srcObject = null;
       }
     }
-  }, [isCameraOpen, toast]);
+  }, [isCameraOpen, toast, t]);
 
   const saveTemplates = (newTemplates: TestTemplate[]) => {
     setTemplates(newTemplates);
@@ -174,10 +176,10 @@ export default function Home() {
     let updatedTemplates;
     if (values.id) {
       updatedTemplates = templates.map(t => t.id === values.id ? newTemplate : t);
-      toast({ title: 'Sucesso!', description: 'Gabarito atualizado com sucesso.' });
+      toast({ title: t('success'), description: t('templateUpdated') });
     } else {
       updatedTemplates = [...templates, newTemplate];
-      toast({ title: 'Sucesso!', description: 'Gabarito criado com sucesso.' });
+      toast({ title: t('success'), description: t('templateCreated') });
     }
     
     saveTemplates(updatedTemplates);
@@ -193,8 +195,8 @@ export default function Home() {
         setSelectedTemplateId(templates.length > 1 ? templates.filter(t => t.id !== templateId)[0].id : '');
     }
     toast({
-      title: 'Sucesso!',
-      description: 'Gabarito apagado com sucesso.',
+      title: t('success'),
+      description: t('templateDeleted'),
     });
   }
   
@@ -250,14 +252,14 @@ export default function Home() {
       if (result && result.grade) {
         setResults(result);
       } else {
-        throw new Error('A resposta da IA foi inválida.');
+        throw new Error(t('invalidAIResponse'));
       }
     } catch (error) {
       console.error(error);
       toast({
         variant: 'destructive',
-        title: 'Erro na Correção',
-        description: 'Não foi possível processar a imagem. Tente novamente com uma imagem mais nítida.',
+        title: t('gradingError'),
+        description: t('imageProcessingError'),
       });
     } finally {
       setIsProcessing(false);
@@ -268,8 +270,8 @@ export default function Home() {
     if (!results || !studentName || !image || !selectedTemplate) {
       toast({
         variant: 'destructive',
-        title: 'Erro ao Salvar',
-        description: 'Preencha o nome do aluno para salvar a correção.',
+        title: t('saveError'),
+        description: t('fillStudentName'),
       });
       return;
     }
@@ -286,8 +288,8 @@ export default function Home() {
 
     saveExams([newSavedExam, ...savedExams]);
     toast({
-      title: 'Correção Salva!',
-      description: `A prova de ${studentName} foi salva com sucesso.`,
+      title: t('correctionSaved'),
+      description: t('examSavedSuccess', { studentName }),
     });
     setIsSaveExamDialogOpen(false);
     setStudentName('');
@@ -297,8 +299,8 @@ export default function Home() {
     const updatedExams = savedExams.filter(exam => exam.id !== examId);
     saveExams(updatedExams);
     toast({
-      title: 'Correção Apagada',
-      description: 'A correção foi apagada com sucesso.',
+      title: t('correctionDeleted'),
+      description: t('correctionDeletedSuccess'),
     });
   };
 
@@ -315,20 +317,20 @@ export default function Home() {
                 <div className="flex items-center gap-3">
                   <BookCopy className="w-8 h-8 text-primary" />
                   <div>
-                    <CardTitle className="text-2xl font-headline">Passo 1: Gabarito</CardTitle>
-                    <CardDescription>Selecione um gabarito ou crie um novo para começar.</CardDescription>
+                    <CardTitle className="text-2xl font-headline">{t('step1')}</CardTitle>
+                    <CardDescription>{t('step1Desc')}</CardDescription>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button variant="outline">
-                        <Edit className="mr-2 h-4 w-4" /> Gerenciar
+                        <Edit className="mr-2 h-4 w-4" /> {t('manage')}
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Gerenciar Gabaritos</DialogTitle>
+                        <DialogTitle>{t('manageTemplates')}</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
                         {templates.map(template => (
@@ -346,26 +348,26 @@ export default function Home() {
                                 </AlertDialogTrigger>
                                  <AlertDialogContent>
                                     <AlertDialogHeader>
-                                      <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                      <AlertDialogTitle>{t('areYouSure')}</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        Essa ação não pode ser desfeita. Isso irá apagar permanentemente o gabarito.
+                                        {t('deleteTemplateWarning')}
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => handleDeleteTemplate(template.id)}>Apagar</AlertDialogAction>
+                                      <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteTemplate(template.id)}>{t('delete')}</AlertDialogAction>
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
                               </AlertDialog>
                             </div>
                           </div>
                         ))}
-                         {templates.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhum gabarito encontrado.</p>}
+                         {templates.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">{t('noTemplatesFound')}</p>}
                       </div>
                     </DialogContent>
                   </Dialog>
                   <Button onClick={openNewForm}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Criar Novo
+                    <PlusCircle className="mr-2 h-4 w-4" /> {t('createNew')}
                   </Button>
                 </div>
               </div>
@@ -374,7 +376,7 @@ export default function Home() {
               {templates.length > 0 ? (
                 <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione um gabarito..." />
+                    <SelectValue placeholder={t('selectTemplate')} />
                   </SelectTrigger>
                   <SelectContent>
                     {templates.map(template => (
@@ -385,9 +387,9 @@ export default function Home() {
               ) : (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Nenhum Gabarito Encontrado</AlertTitle>
+                  <AlertTitle>{t('noTemplatesFound')}</AlertTitle>
                   <AlertDescription>
-                    Crie seu primeiro gabarito para começar a corrigir as provas.
+                    {t('createFirstTemplate')}
                   </AlertDescription>
                 </Alert>
               )}
@@ -397,9 +399,9 @@ export default function Home() {
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogContent className="max-w-3xl h-[90vh] flex flex-col">
               <DialogHeader>
-                <DialogTitle>{editingTemplate ? 'Editar' : 'Criar Novo'} Gabarito</DialogTitle>
+                <DialogTitle>{editingTemplate ? t('edit') : t('createNew')} {t('template')}</DialogTitle>
                 <DialogDescription>
-                  Preencha as informações para {editingTemplate ? 'editar o' : 'criar um novo'} modelo de prova.
+                  {t('fillTemplateInfo')}
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
@@ -409,16 +411,16 @@ export default function Home() {
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nome do Gabarito</FormLabel>
+                        <FormLabel>{t('templateName')}</FormLabel>
                         <FormControl>
-                          <Input placeholder="Ex: Prova de Biologia 1º Trimestre" {...field} />
+                          <Input placeholder={t('templateNamePlaceholder')} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   <div className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-6">
-                    <h3 className="text-lg font-medium">Questões</h3>
+                    <h3 className="text-lg font-medium">{t('questions')}</h3>
                     {fields.map((field, index) => (
                       <Card key={field.id} className="relative p-4">
                         <Button
@@ -439,7 +441,7 @@ export default function Home() {
                               name={`questions.${index}.answer`}
                               render={({ field: radioField }) => (
                                 <FormItem>
-                                  <FormLabel>Resposta Correta</FormLabel>
+                                  <FormLabel>{t('correctAnswer')}</FormLabel>
                                   <FormControl>
                                     <RadioGroup
                                       onValueChange={radioField.onChange}
@@ -465,7 +467,7 @@ export default function Home() {
                               name={`questions.${index}.points`}
                               render={({ field: pointsField }) => (
                                 <FormItem>
-                                  <FormLabel>Pontos</FormLabel>
+                                  <FormLabel>{t('points')}</FormLabel>
                                   <FormControl>
                                     <Input type="number" step="0.5" {...pointsField} />
                                   </FormControl>
@@ -478,12 +480,12 @@ export default function Home() {
                       </Card>
                     ))}
                      <Button type="button" variant="outline" onClick={() => append(defaultQuestion)}>
-                        <Plus className="mr-2 h-4 w-4" /> Adicionar Questão
+                        <Plus className="mr-2 h-4 w-4" /> {t('addQuestion')}
                     </Button>
                   </div>
                   <DialogFooter>
-                    <DialogClose asChild><Button type="button" variant="ghost">Cancelar</Button></DialogClose>
-                    <Button type="submit">Salvar Gabarito</Button>
+                    <DialogClose asChild><Button type="button" variant="ghost">{t('cancel')}</Button></DialogClose>
+                    <Button type="submit">{t('saveTemplate')}</Button>
                   </DialogFooter>
                 </form>
               </Form>
@@ -496,8 +498,8 @@ export default function Home() {
                 <div className="flex items-center gap-3">
                   <FileImage className="w-8 h-8 text-primary" />
                   <div>
-                    <CardTitle className="text-2xl font-headline">Passo 2: Cartão de Respostas</CardTitle>
-                    <CardDescription>Envie uma foto do cartão de respostas do aluno para correção.</CardDescription>
+                    <CardTitle className="text-2xl font-headline">{t('step2')}</CardTitle>
+                    <CardDescription>{t('step2Desc')}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -514,41 +516,41 @@ export default function Home() {
                   ) : (
                     <div className="text-center text-muted-foreground">
                       <UploadCloud className="mx-auto h-12 w-12" />
-                      <p className="mt-2 font-semibold">Clique para enviar ou arraste e solte</p>
-                      <p className="text-xs">PNG, JPG, ou WEBP</p>
+                      <p className="mt-2 font-semibold">{t('uploadOrDrag')}</p>
+                      <p className="text-xs">{t('imageFormats')}</p>
                     </div>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                    <Button onClick={() => document.getElementById('file-upload')?.click()} className="w-full">
-                       <UploadCloud className="mr-2 h-4 w-4" /> Enviar Arquivo
+                       <UploadCloud className="mr-2 h-4 w-4" /> {t('uploadFile')}
                    </Button>
                    <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
                      <DialogTrigger asChild>
                        <Button variant="outline" className="w-full">
-                         <Camera className="mr-2 h-4 w-4" /> Usar Câmera
+                         <Camera className="mr-2 h-4 w-4" /> {t('useCamera')}
                        </Button>
                      </DialogTrigger>
                      <DialogContent className="max-w-xl">
                        <DialogHeader>
-                         <DialogTitle>Tirar Foto</DialogTitle>
+                         <DialogTitle>{t('takePhoto')}</DialogTitle>
                        </DialogHeader>
                        <div className="space-y-4">
                          <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay muted />
                           {hasCameraPermission === false && (
                             <Alert variant="destructive">
                               <AlertCircle className="h-4 w-4" />
-                              <AlertTitle>Câmera não acessível</AlertTitle>
+                              <AlertTitle>{t('cameraNotAccessible')}</AlertTitle>
                               <AlertDescription>
-                                Por favor, permita o acesso à câmera nas configurações do seu navegador.
+                                {t('allowCameraAccess')}
                               </AlertDescription>
                             </Alert>
                           )}
                        </div>
                        <DialogFooter>
-                         <Button variant="secondary" onClick={() => setIsCameraOpen(false)}>Cancelar</Button>
+                         <Button variant="secondary" onClick={() => setIsCameraOpen(false)}>{t('cancel')}</Button>
                          <Button onClick={takePicture} disabled={!hasCameraPermission}>
-                            <Camera className="mr-2 h-4 w-4" /> Tirar Foto
+                            <Camera className="mr-2 h-4 w-4" /> {t('takePhoto')}
                          </Button>
                        </DialogFooter>
                      </DialogContent>
@@ -556,12 +558,12 @@ export default function Home() {
                 </div>
                  {image && (
                   <Button variant="outline" onClick={() => { setImage(null); setResults(null); }} className="w-full">
-                    <RotateCcw className="mr-2 h-4 w-4" /> Limpar Imagem
+                    <RotateCcw className="mr-2 h-4 w-4" /> {t('clearImage')}
                   </Button>
                 )}
                 <Button onClick={handleGrade} disabled={!image || isProcessing} className="w-full">
                   {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  {isProcessing ? 'Corrigindo...' : 'Corrigir Prova'}
+                  {isProcessing ? t('grading') : t('gradeExam')}
                 </Button>
               </CardContent>
             </Card>
@@ -580,33 +582,33 @@ export default function Home() {
                   <div className="flex items-center gap-3">
                     <ClipboardCheck className="w-8 h-8 text-primary" />
                     <div>
-                      <CardTitle className="text-2xl font-headline">Passo 3: Resultados</CardTitle>
-                      <CardDescription>Confira o desempenho do aluno.</CardDescription>
+                      <CardTitle className="text-2xl font-headline">{t('step3')}</CardTitle>
+                      <CardDescription>{t('step3Desc')}</CardDescription>
                     </div>
                   </div>
                    <Dialog open={isSaveExamDialogOpen} onOpenChange={setIsSaveExamDialogOpen}>
                     <DialogTrigger asChild>
                       <Button variant="outline">
-                        <Save className="mr-2 h-4 w-4" /> Salvar Correção
+                        <Save className="mr-2 h-4 w-4" /> {t('saveCorrection')}
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Salvar Correção</DialogTitle>
-                        <DialogDescription>Digite o nome do aluno para salvar o resultado da prova.</DialogDescription>
+                        <DialogTitle>{t('saveCorrection')}</DialogTitle>
+                        <DialogDescription>{t('saveCorrectionDesc')}</DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
-                        <Label htmlFor="studentName">Nome do Aluno</Label>
+                        <Label htmlFor="studentName">{t('studentName')}</Label>
                         <Input 
                           id="studentName"
                           value={studentName}
                           onChange={(e) => setStudentName(e.target.value)}
-                          placeholder="Ex: João da Silva"
+                          placeholder={t('studentNamePlaceholder')}
                         />
                       </div>
                       <DialogFooter>
-                        <Button variant="ghost" onClick={() => setIsSaveExamDialogOpen(false)}>Cancelar</Button>
-                        <Button onClick={handleSaveExam}>Salvar</Button>
+                        <Button variant="ghost" onClick={() => setIsSaveExamDialogOpen(false)}>{t('cancel')}</Button>
+                        <Button onClick={handleSaveExam}>{t('save')}</Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
@@ -614,26 +616,26 @@ export default function Home() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Resumo da Pontuação</h3>
+                  <h3 className="font-semibold text-lg">{t('scoreSummary')}</h3>
                   <div className="p-4 bg-muted/50 rounded-lg space-y-4">
                     <div>
                       <div className="flex justify-between mb-1">
-                        <span className="font-medium">Pontuação Final ({results.grade.earnedPoints} / {results.grade.totalPoints} pts)</span>
+                        <span className="font-medium">{t('finalScore')} ({results.grade.earnedPoints} / {results.grade.totalPoints} {t('pts')})</span>
                         <span className="font-bold text-primary">{results.grade.score.toFixed(1)}%</span>
                       </div>
                       <Progress value={results.grade.score} className="h-2" />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                         <div className="p-3 bg-background/50 rounded-md">
-                            <p className="text-sm text-muted-foreground">Total de Questões</p>
+                            <p className="text-sm text-muted-foreground">{t('totalQuestions')}</p>
                             <p className="text-2xl font-bold">{results.grade.totalQuestions}</p>
                         </div>
                         <div className="p-3 bg-background/50 rounded-md">
-                            <p className="text-sm text-muted-foreground">Corretas</p>
+                            <p className="text-sm text-muted-foreground">{t('correct')}</p>
                             <p className="text-2xl font-bold text-green-400">{results.grade.correctAnswers}</p>
                         </div>
                         <div className="p-3 bg-background/50 rounded-md">
-                            <p className="text-sm text-muted-foreground">Incorretas / Anuladas</p>
+                            <p className="text-sm text-muted-foreground">{t('incorrectVoided')}</p>
                             <p className="text-2xl font-bold text-destructive">{results.grade.incorrectAnswers}</p>
                         </div>
                     </div>
@@ -641,16 +643,16 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Respostas Detalhadas</h3>
+                  <h3 className="font-semibold text-lg">{t('detailedAnswers')}</h3>
                   <div className="border rounded-lg overflow-hidden">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[80px]">Questão</TableHead>
-                          <TableHead>Resposta do Aluno</TableHead>
-                          <TableHead>Gabarito</TableHead>
-                          <TableHead>Pontos</TableHead>
-                          <TableHead className="text-right">Resultado</TableHead>
+                          <TableHead className="w-[80px]">{t('question')}</TableHead>
+                          <TableHead>{t('studentAnswer')}</TableHead>
+                          <TableHead>{t('answerKey')}</TableHead>
+                          <TableHead>{t('points')}</TableHead>
+                          <TableHead className="text-right">{t('result')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -682,8 +684,8 @@ export default function Home() {
           {savedExams.length > 0 && (
             <Card className="shadow-lg animation-fade-in-up bg-card/80 backdrop-blur-sm" style={{animationDelay: '0.3s'}}>
               <CardHeader>
-                  <CardTitle className="text-2xl font-headline">Correções Salvas</CardTitle>
-                  <CardDescription>Veja as provas que você já corrigiu e salvou.</CardDescription>
+                  <CardTitle className="text-2xl font-headline">{t('savedCorrections')}</CardTitle>
+                  <CardDescription>{t('savedCorrectionsDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
                  <Accordion type="single" collapsible className="w-full">
@@ -692,51 +694,51 @@ export default function Home() {
                         <AccordionTrigger>
                           <div className="flex justify-between w-full pr-4">
                             <span className='font-bold'>{exam.studentName}</span>
-                            <span className='text-sm text-muted-foreground'>{new Date(exam.correctionDate).toLocaleDateString('pt-BR')}</span>
+                            <span className='text-sm text-muted-foreground'>{new Date(exam.correctionDate).toLocaleDateString(t.language)}</span>
                           </div>
                         </AccordionTrigger>
                         <AccordionContent className="space-y-6">
                            <div className="flex flex-col md:flex-row gap-6">
                               <div className="w-full md:w-1/3">
-                                <h4 className="font-semibold mb-2">Cartão Resposta</h4>
+                                <h4 className="font-semibold mb-2">{t('answerSheet')}</h4>
                                  <div className="relative aspect-[3/4] rounded-md overflow-hidden border">
                                     <Image src={exam.image} alt={`Prova de ${exam.studentName}`} fill className="object-contain" />
                                  </div>
                               </div>
                               <div className="w-full md:w-2/3 space-y-4">
-                                <h4 className="font-semibold">Resumo</h4>
+                                <h4 className="font-semibold">{t('summary')}</h4>
                                  <div className="p-4 bg-muted/50 rounded-lg space-y-4">
                                     <div>
                                       <div className="flex justify-between mb-1">
-                                        <span className="font-medium">Pontuação Final ({exam.grade.earnedPoints} / {exam.grade.totalPoints} pts)</span>
+                                        <span className="font-medium">{t('finalScore')} ({exam.grade.earnedPoints} / {exam.grade.totalPoints} {t('pts')})</span>
                                         <span className="font-bold text-primary">{exam.grade.score.toFixed(1)}%</span>
                                       </div>
                                       <Progress value={exam.grade.score} className="h-2" />
                                     </div>
                                     <div className="grid grid-cols-3 gap-2 text-center">
                                       <div className="p-2 bg-background/50 rounded-md">
-                                        <p className="text-xs text-muted-foreground">Corretas</p>
+                                        <p className="text-xs text-muted-foreground">{t('correct')}</p>
                                         <p className="text-lg font-bold text-green-400">{exam.grade.correctAnswers}</p>
                                       </div>
                                       <div className="p-2 bg-background/50 rounded-md">
-                                        <p className="text-xs text-muted-foreground">Incorretas</p>
+                                        <p className="text-xs text-muted-foreground">{t('incorrect')}</p>
                                         <p className="text-lg font-bold text-destructive">{exam.grade.incorrectAnswers}</p>
                                       </div>
                                       <div className="p-2 bg-background/50 rounded-md">
-                                        <p className="text-xs text-muted-foreground">Total</p>
+                                        <p className="text-xs text-muted-foreground">{t('total')}</p>
                                         <p className="text-lg font-bold">{exam.grade.totalQuestions}</p>
                                       </div>
                                     </div>
                                  </div>
-                                <h4 className="font-semibold">Respostas Detalhadas</h4>
+                                <h4 className="font-semibold">{t('detailedAnswers')}</h4>
                                  <div className="border rounded-lg overflow-auto max-h-60">
                                   <Table>
                                     <TableHeader>
                                       <TableRow>
                                         <TableHead>Q</TableHead>
-                                        <TableHead>Aluno</TableHead>
-                                        <TableHead>Gabarito</TableHead>
-                                        <TableHead className='text-right'>Resultado</TableHead>
+                                        <TableHead>{t('student')}</TableHead>
+                                        <TableHead>{t('answerKey')}</TableHead>
+                                        <TableHead className='text-right'>{t('result')}</TableHead>
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -758,19 +760,19 @@ export default function Home() {
                            <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="destructive" size="sm">
-                                  <Trash2 className="mr-2 h-4 w-4" /> Apagar Correção
+                                  <Trash2 className="mr-2 h-4 w-4" /> {t('deleteCorrection')}
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                  <AlertDialogTitle>{t('areYouSure')}</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Essa ação não pode ser desfeita. Isso irá apagar permanentemente a correção da prova de {exam.studentName}.
+                                    {t('deleteCorrectionWarning', { studentName: exam.studentName })}
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteSavedExam(exam.id)}>Apagar</AlertDialogAction>
+                                  <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteSavedExam(exam.id)}>{t('delete')}</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
@@ -787,3 +789,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

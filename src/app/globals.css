@@ -4,7 +4,7 @@
 
 body {
   font-family: Arial, Helvetica, sans-serif;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 1600 800'%3E%3Cg stroke='%23000' stroke-width='66.7' stroke-opacity='0.05' %3E%3Ccircle fill='%234299e1' cx='0' cy='0' r='1800'/%3E%3Ccircle fill='%234398d2' cx='0' cy='0' r='1700'/%3E%3Ccircle fill='%234497c3' cx='0' cy='0' r='1600'/%3E%3Ccircle fill='%234596b4' cx='0' cy='0' r='1500'/%3E%3Ccircle fill='%234695a5' cx='0' cy='0' r='1400'/%3E%3Ccircle fill='%23479496' cx='0' cy='0' r='1300'/%3E%3Ccircle fill='%23489387' cx='0' cy='0' r='1200'/%3E%3Ccircle fill='%23499278' cx='0' cy='0' r='1100'/%3E%3Ccircle fill='%234a9169' cx='0' cy='0' r='1000'/%3E%3Ccircle fill='%234b905a' cx='0' cy='0' r='900'/%3E%3Ccircle fill='%234c8f4b' cx='0' cy='0' r='800'/%3E%3Ccircle fill='%234d8e3c' cx='0' cy='0' r='700'/%3E%3Ccircle fill='%234e8d2d' cx='0' cy='0' r='600'/%3E%3Ccircle fill='%234f8c1e' cx='0' cy='0' r='500'/%3E%3Ccircle fill='%23508b0f' cx='0' cy='0' r='400'/%3E%3Ccircle fill='%23518a00' cx='0' cy='0' r='300'/%3E%3Ccircle fill='%23528900' cx='0' cy='0' r='200'/%3E%3Ccircle fill='%23538800' cx='0' cy='0' r='100'/%3E%3C/g%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 800 400'%3E%3Cg %3E%3Ccircle fill='%234299e1' cx='400' cy='200' r='400'/%3E%3Ccircle fill='%234798dd' cx='400' cy='200' r='350'/%3E%3Ccircle fill='%234c97d9' cx='400' cy='200' r='300'/%3E%3Ccircle fill='%235196d5' cx='400' cy='200' r='250'/%3E%3Ccircle fill='%235695d1' cx='400' cy='200' r='200'/%3E%3Ccircle fill='%235b94cd' cx='400' cy='200' r='150'/%3E%3Ccircle fill='%236093c9' cx='400' cy='200' r='100'/%3E%3Ccircle fill='%236592c5' cx='400' cy='200' r='50'/%3E%3C/g%3E%3C/svg%3E");
   background-attachment: fixed;
   background-size: cover;
 }
@@ -79,6 +79,23 @@ body {
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
+  :root.theme-rose {
+    --primary: 346.8 77.2% 49.8%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --accent: 346.8 77.2% 49.8%;
+  }
+  :root.theme-green {
+    --primary: 142.1 76.2% 36.3%;
+    --primary-foreground: 144.9 80.4% 97.1%;
+    --accent: 142.1 76.2% 36.3%;
+  }
+
+  :root.theme-orange {
+    --primary: 24.6 95% 53.1%;
+    --primary-foreground: 26 83.3% 97.8%;
+    --accent: 24.6 95% 53.1%;
+  }
 }
 
 @layer base {
@@ -105,3 +122,5 @@ body {
     }
   }
 }
+
+    
