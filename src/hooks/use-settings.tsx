@@ -18,39 +18,57 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const [language, setLanguageState] = useState<Language>('pt-BR');
     const [theme, setThemeState] = useState<Theme>('blue');
+    const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
-        const storedLang = localStorage.getItem('provaFacilLang') as Language;
-        if (storedLang && ['en', 'pt-BR'].includes(storedLang)) {
-            setLanguageState(storedLang);
-        }
+        setIsMounted(true);
+        try {
+            const storedLang = localStorage.getItem('provaFacilLang') as Language;
+            if (storedLang && ['en', 'pt-BR'].includes(storedLang)) {
+                setLanguageState(storedLang);
+                document.documentElement.lang = storedLang;
+            }
 
-        const storedTheme = localStorage.getItem('provaFacilTheme') as Theme;
-        if (storedTheme && ['blue', 'green', 'rose', 'orange', 'yellow', 'black', 'white'].includes(storedTheme)) {
-            setThemeState(storedTheme);
-        } else {
-             setThemeState('blue');
+            const storedTheme = localStorage.getItem('provaFacilTheme') as Theme;
+            if (storedTheme && ['blue', 'green', 'rose', 'orange', 'yellow', 'black', 'white'].includes(storedTheme)) {
+                setThemeState(storedTheme);
+            }
+        } catch (error) {
+            console.error("Failed to access localStorage", error);
         }
     }, []);
 
+    useEffect(() => {
+        if (isMounted) {
+            try {
+                localStorage.setItem('provaFacilLang', language);
+                document.documentElement.lang = language;
+            } catch (error) {
+                 console.error("Failed to save language to localStorage", error);
+            }
+        }
+    }, [language, isMounted]);
+
+    useEffect(() => {
+        if (isMounted) {
+            try {
+                const root = document.documentElement;
+                root.classList.remove('theme-blue', 'theme-green', 'theme-rose', 'theme-orange', 'theme-yellow', 'theme-black', 'theme-white');
+                root.classList.add(`theme-${theme}`);
+                localStorage.setItem('provaFacilTheme', theme);
+            } catch (error) {
+                console.error("Failed to save theme to localStorage", error);
+            }
+        }
+    }, [theme, isMounted]);
+    
     const setLanguage = (lang: Language) => {
         setLanguageState(lang);
-        localStorage.setItem('provaFacilLang', lang);
-        document.documentElement.lang = lang;
     };
 
     const setTheme = (theme: Theme) => {
         setThemeState(theme);
-        localStorage.setItem('provaFacilTheme', theme);
     };
-
-    useEffect(() => {
-        // Remove all theme classes
-        document.documentElement.classList.remove('theme-blue', 'theme-green', 'theme-rose', 'theme-orange', 'theme-yellow', 'theme-black', 'theme-white');
-        
-        // Add the selected theme class.
-        document.documentElement.classList.add(`theme-${theme}`);
-    }, [theme]);
     
     const t = useMemo(() => (key: string, replacements?: { [key: string]: string | number }) => {
         let translation = translations[language]?.[key] || translations['en']?.[key] || key;
