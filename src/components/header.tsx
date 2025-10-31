@@ -1,11 +1,11 @@
 'use client';
-import { GraduationCap, Languages, Palette, Settings } from 'lucide-react';
+import { GraduationCap, Languages, Settings } from 'lucide-react';
 import { useSettings } from '@/hooks/use-settings';
 import { Button } from './ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 export default function Header() {
-    const { setLanguage, t, setTheme } = useSettings();
+    const { setLanguage, t } = useSettings();
 
     return (
         <header className="bg-card border-b shadow-sm">
@@ -38,23 +38,6 @@ export default function Header() {
                                     <DropdownMenuItem onClick={() => setLanguage('fr')}>Français</DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => setLanguage('de')}>Deutsch</DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => setLanguage('ru')}>Русский</DropdownMenuItem>
-                                </DropdownMenuSubContent>
-                            </DropdownMenuPortal>
-                        </DropdownMenuSub>
-                        <DropdownMenuSub>
-                            <DropdownMenuSubTrigger>
-                                <Palette className="mr-2 h-4 w-4" />
-                                <span>{t('colorTheme')}</span>
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuPortal>
-                                <DropdownMenuSubContent>
-                                    <DropdownMenuItem onClick={() => setTheme('blue')}>{t('blue')}</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setTheme('green')}>{t('green')}</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setTheme('rose')}>{t('rose')}</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setTheme('orange')}>{t('orange')}</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setTheme('yellow')}>{t('yellow')}</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setTheme('black')}>{t('black')}</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setTheme('white')}>{t('white')}</DropdownMenuItem>
                                 </DropdownMenuSubContent>
                             </DropdownMenuPortal>
                         </DropdownMenuSub>
