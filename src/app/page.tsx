@@ -305,18 +305,20 @@ export default function Home() {
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900/20">
       <Header />
       <main className="flex-grow container mx-auto p-4 md:p-8">
         <div className="max-w-4xl mx-auto space-y-8">
-          <Card className="shadow-lg animation-fade-in-up bg-card/80 backdrop-blur-sm">
+          <Card className="shadow-lg animation-fade-in-up bg-white/60 dark:bg-card/60 backdrop-blur-lg border-blue-100 dark:border-blue-900/20">
             <CardHeader>
               <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <BookCopy className="w-8 h-8 text-primary" />
+                  <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg text-white shadow-md">
+                    <BookCopy className="w-8 h-8" />
+                  </div>
                   <div>
-                    <CardTitle className="text-2xl font-headline">Passo 1: Gabarito</CardTitle>
-                    <CardDescription>Selecione um gabarito ou crie um novo para começar.</CardDescription>
+                    <CardTitle className="text-2xl font-headline text-gray-800 dark:text-gray-100">Passo 1: Gabarito</CardTitle>
+                    <CardDescription className="text-gray-600 dark:text-gray-400">Selecione um gabarito ou crie um novo para começar.</CardDescription>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 self-end sm:self-center">
@@ -364,7 +366,7 @@ export default function Home() {
                       </div>
                     </DialogContent>
                   </Dialog>
-                  <Button onClick={openNewForm}>
+                  <Button onClick={openNewForm} className="bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-md hover:from-blue-600 hover:to-blue-800 transition-all">
                     <PlusCircle className="mr-2 h-4 w-4" /> Criar Novo
                   </Button>
                 </div>
@@ -491,19 +493,21 @@ export default function Home() {
           </Dialog>
 
           {selectedTemplate && (
-            <Card className="shadow-lg animation-fade-in-up bg-card/80 backdrop-blur-sm" style={{animationDelay: '0.1s'}}>
+            <Card className="shadow-lg animation-fade-in-up bg-white/60 dark:bg-card/60 backdrop-blur-lg border-blue-100 dark:border-blue-900/20" style={{animationDelay: '0.1s'}}>
               <CardHeader>
                 <div className="flex items-center gap-3">
-                  <FileImage className="w-8 h-8 text-primary" />
+                   <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg text-white shadow-md">
+                    <FileImage className="w-8 h-8" />
+                   </div>
                   <div>
-                    <CardTitle className="text-2xl font-headline">Passo 2: Cartão de Respostas</CardTitle>
-                    <CardDescription>Envie uma foto do cartão de respostas do aluno para correção.</CardDescription>
+                    <CardTitle className="text-2xl font-headline text-gray-800 dark:text-gray-100">Passo 2: Cartão de Respostas</CardTitle>
+                    <CardDescription className="text-gray-600 dark:text-gray-400">Envie uma foto do cartão de respostas do aluno para correção.</CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div 
-                  className="relative flex items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="relative flex items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   onDrop={handleImageDrop}
                   onDragOver={(e) => e.preventDefault()}
                   onClick={() => document.getElementById('file-upload')?.click()}
@@ -513,9 +517,9 @@ export default function Home() {
                     <Image src={image} alt="Preview" fill className="object-contain rounded-lg p-2" />
                   ) : (
                     <div className="text-center text-muted-foreground">
-                      <UploadCloud className="mx-auto h-12 w-12" />
-                      <p className="mt-2 font-semibold">Clique para enviar ou arraste e solte</p>
-                      <p className="text-xs">PNG, JPG, ou WEBP</p>
+                      <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
+                      <p className="mt-2 font-semibold text-gray-600 dark:text-gray-300">Clique para enviar ou arraste e solte</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, ou WEBP</p>
                     </div>
                   )}
                 </div>
@@ -559,7 +563,7 @@ export default function Home() {
                     <RotateCcw className="mr-2 h-4 w-4" /> Limpar Imagem
                   </Button>
                 )}
-                <Button onClick={handleGrade} disabled={!image || isProcessing} className="w-full">
+                <Button onClick={handleGrade} disabled={!image || isProcessing} className="w-full bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-md hover:from-blue-600 hover:to-blue-800 transition-all text-lg py-6">
                   {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   {isProcessing ? 'Corrigindo...' : 'Corrigir Prova'}
                 </Button>
@@ -574,14 +578,16 @@ export default function Home() {
           )}
 
           {results && (
-            <Card className="shadow-lg animation-fade-in-up bg-card/80 backdrop-blur-sm" style={{animationDelay: '0.2s'}}>
+            <Card className="shadow-lg animation-fade-in-up bg-white/60 dark:bg-card/60 backdrop-blur-lg border-blue-100 dark:border-blue-900/20" style={{animationDelay: '0.2s'}}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <ClipboardCheck className="w-8 h-8 text-primary" />
+                     <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg text-white shadow-md">
+                        <ClipboardCheck className="w-8 h-8" />
+                     </div>
                     <div>
-                      <CardTitle className="text-2xl font-headline">Passo 3: Resultados</CardTitle>
-                      <CardDescription>Confira o desempenho do aluno.</CardDescription>
+                      <CardTitle className="text-2xl font-headline text-gray-800 dark:text-gray-100">Passo 3: Resultados</CardTitle>
+                      <CardDescription className="text-gray-600 dark:text-gray-400">Confira o desempenho do aluno.</CardDescription>
                     </div>
                   </div>
                    <Dialog open={isSaveExamDialogOpen} onOpenChange={setIsSaveExamDialogOpen}>
@@ -614,35 +620,35 @@ export default function Home() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Pontuação Final</h3>
-                  <div className="p-4 bg-muted/50 rounded-lg space-y-4">
+                  <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-100">Pontuação Final</h3>
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg space-y-4 border border-gray-200 dark:border-gray-700">
                     <div>
-                      <div className="flex justify-between mb-1">
+                      <div className="flex justify-between mb-1 text-gray-700 dark:text-gray-300">
                         <span className="font-medium">Pontuação Final ({results.grade.earnedPoints} / {results.grade.totalPoints} pts)</span>
-                        <span className="font-bold text-primary">{results.grade.score.toFixed(1)}%</span>
+                        <span className="font-bold text-blue-600 dark:text-blue-400">{results.grade.score.toFixed(1)}%</span>
                       </div>
                       <Progress value={results.grade.score} className="h-2" />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                        <div className="p-3 bg-background/50 rounded-md">
+                        <div className="p-3 bg-white dark:bg-background/50 rounded-md shadow-sm">
                             <p className="text-sm text-muted-foreground">Total de Questões</p>
-                            <p className="text-2xl font-bold">{results.grade.totalQuestions}</p>
+                            <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{results.grade.totalQuestions}</p>
                         </div>
-                        <div className="p-3 bg-background/50 rounded-md">
+                        <div className="p-3 bg-white dark:bg-background/50 rounded-md shadow-sm">
                             <p className="text-sm text-muted-foreground">Corretas</p>
-                            <p className="text-2xl font-bold text-green-400">{results.grade.correctAnswers}</p>
+                            <p className="text-2xl font-bold text-green-500">{results.grade.correctAnswers}</p>
                         </div>
-                        <div className="p-3 bg-background/50 rounded-md">
+                        <div className="p-3 bg-white dark:bg-background/50 rounded-md shadow-sm">
                             <p className="text-sm text-muted-foreground">Incorretas / Anuladas</p>
-                            <p className="text-2xl font-bold text-destructive">{results.grade.incorrectAnswers}</p>
+                            <p className="text-2xl font-bold text-red-500">{results.grade.incorrectAnswers}</p>
                         </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Respostas Detalhadas</h3>
-                  <div className="border rounded-lg overflow-hidden">
+                  <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-100">Respostas Detalhadas</h3>
+                  <div className="border rounded-lg overflow-hidden bg-white dark:bg-card">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -655,18 +661,18 @@ export default function Home() {
                       </TableHeader>
                       <TableBody>
                         {results.details.map((item) => (
-                          <TableRow key={item.question} className={!item.isCorrect ? (item.studentAnswer === 'ANULADA' ? 'bg-amber-400/20' : 'bg-destructive/20') : ''}>
+                          <TableRow key={item.question} className={!item.isCorrect ? (item.studentAnswer === 'ANULADA' ? 'bg-amber-400/10 dark:bg-amber-900/20' : 'bg-red-400/10 dark:bg-red-900/20') : ''}>
                             <TableCell className="font-medium">{item.question}</TableCell>
                             <TableCell>{item.studentAnswer || '-'}</TableCell>
                             <TableCell>{item.correctAnswer}</TableCell>
                             <TableCell>{item.points}</TableCell>
                             <TableCell className="text-right">
                               {item.studentAnswer === 'ANULADA' ? (
-                                <AlertOctagon className="h-5 w-5 text-amber-400 inline-block" />
+                                <AlertOctagon className="h-5 w-5 text-amber-500 inline-block" />
                               ) : item.isCorrect ? (
-                                <CheckCircle className="h-5 w-5 text-green-400 inline-block" />
+                                <CheckCircle className="h-5 w-5 text-green-500 inline-block" />
                               ) : (
-                                <XCircle className="h-5 w-5 text-destructive inline-block" />
+                                <XCircle className="h-5 w-5 text-red-500 inline-block" />
                               )}
                             </TableCell>
                           </TableRow>
@@ -680,10 +686,10 @@ export default function Home() {
           )}
 
           {savedExams.length > 0 && (
-            <Card className="shadow-lg animation-fade-in-up bg-card/80 backdrop-blur-sm" style={{animationDelay: '0.3s'}}>
+            <Card className="shadow-lg animation-fade-in-up bg-white/60 dark:bg-card/60 backdrop-blur-lg border-blue-100 dark:border-blue-900/20" style={{animationDelay: '0.3s'}}>
               <CardHeader>
-                  <CardTitle className="text-2xl font-headline">Correções Salvas</CardTitle>
-                  <CardDescription>Veja as provas que você já corrigiu e salvou.</CardDescription>
+                  <CardTitle className="text-2xl font-headline text-gray-800 dark:text-gray-100">Correções Salvas</CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400">Veja as provas que você já corrigiu e salvou.</CardDescription>
               </CardHeader>
               <CardContent>
                  <Accordion type="single" collapsible className="w-full">
@@ -705,31 +711,31 @@ export default function Home() {
                               </div>
                               <div className="w-full md:w-2/3 space-y-4">
                                 <h4 className="font-semibold">Resumo</h4>
-                                 <div className="p-4 bg-muted/50 rounded-lg space-y-4">
+                                 <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg space-y-4 border border-gray-200 dark:border-gray-700">
                                     <div>
                                       <div className="flex justify-between mb-1">
                                         <span className="font-medium">Pontuação Final ({exam.grade.earnedPoints} / {exam.grade.totalPoints} pts)</span>
-                                        <span className="font-bold text-primary">{exam.grade.score.toFixed(1)}%</span>
+                                        <span className="font-bold text-blue-600 dark:text-blue-400">{exam.grade.score.toFixed(1)}%</span>
                                       </div>
                                       <Progress value={exam.grade.score} className="h-2" />
                                     </div>
                                     <div className="grid grid-cols-3 gap-2 text-center">
-                                      <div className="p-2 bg-background/50 rounded-md">
+                                      <div className="p-2 bg-white dark:bg-background/50 rounded-md shadow-sm">
                                         <p className="text-xs text-muted-foreground">Corretas</p>
-                                        <p className="text-lg font-bold text-green-400">{exam.grade.correctAnswers}</p>
+                                        <p className="text-lg font-bold text-green-500">{exam.grade.correctAnswers}</p>
                                       </div>
-                                      <div className="p-2 bg-background/50 rounded-md">
+                                      <div className="p-2 bg-white dark:bg-background/50 rounded-md shadow-sm">
                                         <p className="text-xs text-muted-foreground">Incorretas</p>
-                                        <p className="text-lg font-bold text-destructive">{exam.grade.incorrectAnswers}</p>
+                                        <p className="text-lg font-bold text-red-500">{exam.grade.incorrectAnswers}</p>
                                       </div>
-                                      <div className="p-2 bg-background/50 rounded-md">
+                                      <div className="p-2 bg-white dark:bg-background/50 rounded-md shadow-sm">
                                         <p className="text-xs text-muted-foreground">Total</p>
                                         <p className="text-lg font-bold">{exam.grade.totalQuestions}</p>
                                       </div>
                                     </div>
                                  </div>
                                 <h4 className="font-semibold">Respostas Detalhadas</h4>
-                                 <div className="border rounded-lg overflow-auto max-h-60">
+                                 <div className="border rounded-lg overflow-auto max-h-60 bg-white dark:bg-card">
                                   <Table>
                                     <TableHeader>
                                       <TableRow>
@@ -741,12 +747,12 @@ export default function Home() {
                                     </TableHeader>
                                     <TableBody>
                                       {exam.details.map((item) => (
-                                        <TableRow key={item.question} className={!item.isCorrect ? (item.studentAnswer === 'ANULADA' ? 'bg-amber-400/20' : 'bg-destructive/20') : ''}>
+                                        <TableRow key={item.question} className={!item.isCorrect ? (item.studentAnswer === 'ANULADA' ? 'bg-amber-400/10 dark:bg-amber-900/20' : 'bg-red-400/10 dark:bg-red-900/20') : ''}>
                                           <TableCell>{item.question}</TableCell>
                                           <TableCell>{item.studentAnswer || '-'}</TableCell>
                                           <TableCell>{item.correctAnswer}</TableCell>
                                           <TableCell className="text-right">
-                                            {item.studentAnswer === 'ANULADA' ? <AlertOctagon className="h-5 w-5 text-amber-400 inline-block" /> : item.isCorrect ? <CheckCircle className="h-5 w-5 text-green-400 inline-block" /> : <XCircle className="h-5 w-5 text-destructive inline-block" />}
+                                            {item.studentAnswer === 'ANULADA' ? <AlertOctagon className="h-5 w-5 text-amber-500 inline-block" /> : item.isCorrect ? <CheckCircle className="h-5 w-5 text-green-500 inline-block" /> : <XCircle className="h-5 w-5 text-red-500 inline-block" />}
                                           </TableCell>
                                         </TableRow>
                                       ))}
