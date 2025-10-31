@@ -11,6 +11,11 @@ const translations = {
     green: 'Verde',
     rose: 'Rosa',
     orange: 'Laranja',
+    yellow: 'Amarelo',
+    black: 'Preto',
+    white: 'Branco',
+    pink: 'Rosa',
+
 
     // Steps
     step1: 'Passo 1: Gabarito',
@@ -113,6 +118,10 @@ const translations = {
     green: 'Green',
     rose: 'Rose',
     orange: 'Orange',
+    yellow: 'Yellow',
+    black: 'Black',
+    white: 'White',
+    pink: 'Pink',
     
     // Steps
     step1: 'Step 1: Answer Key',
@@ -208,5 +217,3 @@ takingPhoto: 'Taking Photo...',
 };
 
 export default translations;
-
-    

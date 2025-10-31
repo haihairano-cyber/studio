@@ -5,13 +5,16 @@ import { Button } from './ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 export default function Header() {
-    const { language, setLanguage, theme, setTheme, t } = useSettings();
+    const { setLanguage, setTheme, t } = useSettings();
 
     const themes = [
         { name: 'blue', label: t('blue') },
         { name: 'green', label: t('green') },
-        { name: 'rose', label: t('rose') },
+        { name: 'rose', label: t('pink') },
         { name: 'orange', label: t('orange') },
+        { name: 'yellow', label: t('yellow') },
+        { name: 'black', label: t('black') },
+        { name: 'white', label: t('white') },
     ];
 
     return (
@@ -52,7 +55,7 @@ export default function Header() {
                             <DropdownMenuPortal>
                                 <DropdownMenuSubContent>
                                     {themes.map((themeItem) => (
-                                        <DropdownMenuItem key={themeItem.name} onClick={() => setTheme(themeItem.name)}>
+                                        <DropdownMenuItem key={themeItem.name} onClick={() => setTheme(themeItem.name as any)}>
                                             {themeItem.label}
                                         </DropdownMenuItem>
                                     ))}
@@ -65,5 +68,3 @@ export default function Header() {
         </header>
     );
 }
-
-    

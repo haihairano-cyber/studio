@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useEffect, ReactNode, useMemo } fr
 import translations from '@/lib/i18n';
 
 type Language = 'en' | 'pt-BR';
-type Theme = 'blue' | 'green' | 'rose' | 'orange';
+type Theme = 'blue' | 'green' | 'rose' | 'orange' | 'yellow' | 'black' | 'white';
 
 interface SettingsContextType {
     language: Language;
@@ -26,7 +26,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const storedTheme = localStorage.getItem('provaFacilTheme') as Theme;
-        if (storedTheme && ['blue', 'green', 'rose', 'orange'].includes(storedTheme)) {
+        if (storedTheme && ['blue', 'green', 'rose', 'orange', 'yellow', 'black', 'white'].includes(storedTheme)) {
             setThemeState(storedTheme);
         } else {
              setThemeState('blue');
@@ -46,12 +46,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         // Remove all theme classes
-        document.documentElement.classList.remove('theme-blue', 'theme-green', 'theme-rose', 'theme-orange');
+        document.documentElement.classList.remove('theme-blue', 'theme-green', 'theme-rose', 'theme-orange', 'theme-yellow', 'theme-black', 'theme-white');
         
-        // Add the selected theme class. 'blue' is the default so it doesn't need a class.
-        if (theme !== 'blue') {
-            document.documentElement.classList.add(`theme-${theme}`);
-        }
+        // Add the selected theme class.
+        document.documentElement.classList.add(`theme-${theme}`);
     }, [theme]);
     
     const t = useMemo(() => (key: string, replacements?: { [key: string]: string | number }) => {
