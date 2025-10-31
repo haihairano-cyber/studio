@@ -15,7 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <SettingsProvider>
-      <html lang="pt-BR" className="dark">
+      <html lang="pt-BR" className="dark theme-blue">
         <head>
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -29,5 +29,3 @@ export default function RootLayout({
     </SettingsProvider>
   );
 }
-
-    
