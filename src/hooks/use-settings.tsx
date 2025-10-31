@@ -45,17 +45,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     };
 
     useEffect(() => {
+        // Remove all theme classes
         document.documentElement.classList.remove('theme-blue', 'theme-green', 'theme-rose', 'theme-orange');
+        
+        // Add the selected theme class. 'blue' is the default so it doesn't need a class.
         if (theme !== 'blue') {
             document.documentElement.classList.add(`theme-${theme}`);
-        } else {
-            // default is blue, so we remove all other themes
-            document.documentElement.classList.remove('theme-green', 'theme-rose', 'theme-orange');
         }
     }, [theme]);
     
     const t = useMemo(() => (key: string, replacements?: { [key: string]: string | number }) => {
-        let translation = translations[language][key] || translations['en'][key] || key;
+        let translation = translations[language]?.[key] || translations['en']?.[key] || key;
         if (replacements) {
             Object.keys(replacements).forEach(rKey => {
                 translation = translation.replace(`{{${rKey}}}`, String(replacements[rKey]));
@@ -79,5 +79,3 @@ export const useSettings = () => {
     }
     return context;
 };
-
-    
