@@ -1,21 +1,11 @@
 'use client';
-import { GraduationCap, Languages, Palette, Settings } from 'lucide-react';
+import { GraduationCap, Languages, Settings } from 'lucide-react';
 import { useSettings } from '@/hooks/use-settings';
 import { Button } from './ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 export default function Header() {
-    const { setLanguage, setTheme, t } = useSettings();
-
-    const themes = [
-        { name: 'blue', label: t('blue') },
-        { name: 'green', label: t('green') },
-        { name: 'rose', label: t('pink') },
-        { name: 'orange', label: t('orange') },
-        { name: 'yellow', label: t('yellow') },
-        { name: 'black', label: t('black') },
-        { name: 'white', label: t('white') },
-    ];
+    const { setLanguage, t } = useSettings();
 
     return (
         <header className="bg-card border-b shadow-sm">
@@ -44,21 +34,10 @@ export default function Header() {
                                 <DropdownMenuSubContent>
                                     <DropdownMenuItem onClick={() => setLanguage('en')}>English</DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => setLanguage('pt-BR')}>Português</DropdownMenuItem>
-                                </DropdownMenuSubContent>
-                            </DropdownMenuPortal>
-                        </DropdownMenuSub>
-                         <DropdownMenuSub>
-                            <DropdownMenuSubTrigger>
-                                <Palette className="mr-2 h-4 w-4" />
-                                <span>{t('colorTheme')}</span>
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuPortal>
-                                <DropdownMenuSubContent>
-                                    {themes.map((themeItem) => (
-                                        <DropdownMenuItem key={themeItem.name} onClick={() => setTheme(themeItem.name as any)}>
-                                            {themeItem.label}
-                                        </DropdownMenuItem>
-                                    ))}
+                                    <DropdownMenuItem onClick={() => setLanguage('es')}>Español</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setLanguage('fr')}>Français</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setLanguage('de')}>Deutsch</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setLanguage('ru')}>Русский</DropdownMenuItem>
                                 </DropdownMenuSubContent>
                             </DropdownMenuPortal>
                         </DropdownMenuSub>

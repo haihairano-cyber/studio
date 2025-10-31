@@ -2,14 +2,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import translations from '@/lib/i18n';
 
-type Language = 'en' | 'pt-BR';
-type Theme = 'blue' | 'green' | 'rose' | 'orange' | 'yellow' | 'black' | 'white';
+type Language = 'en' | 'pt-BR' | 'es' | 'fr' | 'de' | 'ru';
 
 interface SettingsContextType {
     language: Language;
     setLanguage: (lang: Language) => void;
-    theme: Theme;
-    setTheme: (theme: Theme) => void;
     t: (key: string, replacements?: { [key: string]: string | number }) => string;
 }
 
@@ -17,21 +14,15 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const [language, setLanguageState] = useState<Language>('pt-BR');
-    const [theme, setThemeState] = useState<Theme>('blue');
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
         setIsMounted(true);
         try {
             const storedLang = localStorage.getItem('provaFacilLang') as Language;
-            if (storedLang && ['en', 'pt-BR'].includes(storedLang)) {
+            if (storedLang && ['en', 'pt-BR', 'es', 'fr', 'de', 'ru'].includes(storedLang)) {
                 setLanguageState(storedLang);
                 document.documentElement.lang = storedLang;
-            }
-
-            const storedTheme = localStorage.getItem('provaFacilTheme') as Theme;
-            if (storedTheme && ['blue', 'green', 'rose', 'orange', 'yellow', 'black', 'white'].includes(storedTheme)) {
-                setThemeState(storedTheme);
             }
         } catch (error) {
             console.error("Failed to access localStorage", error);
@@ -49,27 +40,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [language, isMounted]);
 
-    useEffect(() => {
-        if (isMounted) {
-            try {
-                const root = document.documentElement;
-                root.classList.remove('theme-blue', 'theme-green', 'theme-rose', 'theme-orange', 'theme-yellow', 'theme-black', 'theme-white');
-                root.classList.add(`theme-${theme}`);
-                localStorage.setItem('provaFacilTheme', theme);
-            } catch (error) {
-                console.error("Failed to save theme to localStorage", error);
-            }
-        }
-    }, [theme, isMounted]);
-    
     const setLanguage = (lang: Language) => {
         setLanguageState(lang);
     };
 
-    const setTheme = (theme: Theme) => {
-        setThemeState(theme);
-    };
-    
     const t = useMemo(() => (key: string, replacements?: { [key: string]: string | number }) => {
         let translation = translations[language]?.[key] || translations['en']?.[key] || key;
         if (replacements) {
@@ -80,9 +54,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         return translation;
     }, [language]);
 
-
     return (
-        <SettingsContext.Provider value={{ language, setLanguage, theme, setTheme, t }}>
+        <SettingsContext.Provider value={{ language, setLanguage, t }}>
             {children}
         </SettingsContext.Provider>
     );
