@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { UploadCloud, PlusCircle, Loader2, CheckCircle, XCircle, AlertCircle, BookCopy, FileImage, ClipboardCheck, Trash2, Edit, Plus, X, Camera, RotateCcw, AlertOctagon, Save } from 'lucide-react';
+import { UploadCloud, PlusCircle, Loader2, CheckCircle, XCircle, AlertCircle, BookCopy, FileImage, ClipboardCheck, Trash2, Edit, Plus, X, Camera, RotateCcw, AlertOctagon, Save, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -58,6 +58,7 @@ export default function Home() {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isSaveExamDialogOpen, setIsSaveExamDialogOpen] = useState(false);
   const [studentName, setStudentName] = useState('');
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
 
   useEffect(() => {
     try {
@@ -73,28 +74,36 @@ export default function Home() {
       console.error("Failed to load data from localStorage", error);
     }
   }, []);
+  
+  const getCamera = useCallback(async () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: facingMode }
+      });
+      setHasCameraPermission(true);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      setHasCameraPermission(false);
+      toast({
+        variant: 'destructive',
+        title: 'Acesso à câmera negado',
+        description: 'Por favor, habilite o acesso à câmera nas configurações do seu navegador.',
+      });
+      setIsCameraOpen(false);
+    }
+  }, [facingMode, toast]);
 
   useEffect(() => {
     if (isCameraOpen) {
-      const getCameraPermission = async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          setHasCameraPermission(true);
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-        } catch (error) {
-          console.error('Error accessing camera:', error);
-          setHasCameraPermission(false);
-          toast({
-            variant: 'destructive',
-            title: 'Acesso à câmera negado',
-            description: 'Por favor, habilite o acesso à câmera nas configurações do seu navegador.',
-          });
-          setIsCameraOpen(false);
-        }
-      };
-      getCameraPermission();
+      getCamera();
     } else {
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
@@ -102,7 +111,7 @@ export default function Home() {
         videoRef.current.srcObject = null;
       }
     }
-  }, [isCameraOpen, toast]);
+  }, [isCameraOpen, getCamera]);
 
   const saveTemplates = (newTemplates: TestTemplate[]) => {
     setTemplates(newTemplates);
@@ -301,6 +310,10 @@ export default function Home() {
       description: 'A correção foi apagada com sucesso.',
     });
   };
+
+  const toggleCameraFacingMode = () => {
+    setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
+  }
 
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
 
@@ -550,6 +563,9 @@ export default function Home() {
                           )}
                        </div>
                        <DialogFooter>
+                         <Button variant="outline" onClick={toggleCameraFacingMode}>
+                            <RefreshCw className="mr-2 h-4 w-4"/> Alternar Câmera
+                         </Button>
                          <Button variant="secondary" onClick={() => setIsCameraOpen(false)}>Cancelar</Button>
                          <Button onClick={takePicture} disabled={!hasCameraPermission}>
                             <Camera className="mr-2 h-4 w-4" /> Tirar Foto
@@ -796,3 +812,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
