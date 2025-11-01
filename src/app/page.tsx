@@ -5,7 +5,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-import { gradeExamAction } from '@/app/actions';
+import { gradeExamAction, extractAnswersFromKeyImageAction } from '@/app/actions';
 import type { TestTemplate, GradingResult, DetailedResult, SavedExam } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/header';
@@ -59,6 +59,8 @@ export default function Home() {
   const [isSaveExamDialogOpen, setIsSaveExamDialogOpen] = useState(false);
   const [studentName, setStudentName] = useState('');
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  const [templateImage, setTemplateImage] = useState<string | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
 
   useEffect(() => {
     try {
@@ -139,7 +141,7 @@ export default function Home() {
     },
   });
   
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: 'questions',
   });
@@ -147,6 +149,7 @@ export default function Home() {
   function openEditForm(templateId: string) {
     const template = templates.find(t => t.id === templateId);
     if (template) {
+      setTemplateImage(null);
       setEditingTemplate(template);
       form.reset({
         id: template.id,
@@ -162,6 +165,7 @@ export default function Home() {
   }
 
   function openNewForm() {
+    setTemplateImage(null);
     setEditingTemplate(null);
     form.reset({
       id: undefined,
@@ -192,6 +196,7 @@ export default function Home() {
     saveTemplates(updatedTemplates);
     form.reset();
     setIsFormOpen(false);
+    setTemplateImage(null);
     setSelectedTemplateId(newTemplate.id);
   }
   
@@ -225,6 +230,46 @@ export default function Home() {
     setResults(null);
   }
 
+  const handleTemplateFile = (file: File) => {
+    if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            setTemplateImage(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+    }
+  }
+
+  const handleExtractFromImage = async () => {
+    if (!templateImage) return;
+    setIsExtracting(true);
+    try {
+      const extractedAnswers = await extractAnswersFromKeyImageAction(templateImage);
+      if (extractedAnswers && extractedAnswers.length > 0) {
+        const newQuestions = extractedAnswers.map(answer => ({
+          ...defaultQuestion,
+          answer: ['A', 'B', 'C', 'D', 'E'].includes(answer) ? answer : 'A', // Fallback
+        }));
+        replace(newQuestions);
+        toast({
+          title: 'Gabarito Extraído!',
+          description: `${extractedAnswers.length} questões foram preenchidas a partir da imagem.`
+        });
+      } else {
+        throw new Error('Nenhuma resposta pôde ser extraída.');
+      }
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro na Extração',
+        description: 'Não foi possível processar a imagem do gabarito. Tente novamente.',
+      });
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
 
   const handleImageDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -249,8 +294,13 @@ export default function Home() {
       if (context) {
         context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
         const dataUri = canvas.toDataURL('image/jpeg');
-        setImage(dataUri);
-        setResults(null);
+
+        if(isFormOpen) {
+          setTemplateImage(dataUri);
+        } else {
+          setImage(dataUri);
+          setResults(null);
+        }
       }
       setIsCameraOpen(false);
     }
@@ -424,25 +474,90 @@ export default function Home() {
               <DialogHeader>
                 <DialogTitle>{editingTemplate ? 'Editar' : 'Criar Novo'} Gabarito</DialogTitle>
                 <DialogDescription>
-                  Preencha as informações para criar um novo modelo de prova.
+                  Preencha as informações ou envie uma imagem para gerar um novo modelo de prova.
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 flex-grow overflow-hidden flex flex-col">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome do Gabarito</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ex: Prova de Biologia 1º Trimestre" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-6">
+                   <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome do Gabarito</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ex: Prova de Biologia 1º Trimestre" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div>
+                        <Label>Gerar a partir de imagem</Label>
+                        <div 
+                          className="relative flex items-center justify-center w-full h-48 mt-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                          onClick={() => document.getElementById('template-file-upload')?.click()}
+                        >
+                          <input id="template-file-upload" type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => e.target.files && handleTemplateFile(e.target.files[0])} />
+                          {templateImage ? (
+                            <Image src={templateImage} alt="Preview do Gabarito" fill className="object-contain rounded-lg p-2" />
+                          ) : (
+                            <div className="text-center text-muted-foreground">
+                              <UploadCloud className="mx-auto h-10 w-10 text-gray-400" />
+                              <p className="mt-2 text-sm font-semibold text-gray-600 dark:text-gray-300">Clique para enviar ou arraste</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG ou PDF</p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                           <Button type="button" onClick={() => document.getElementById('template-file-upload')?.click()} className="w-full" variant="outline">
+                               <UploadCloud className="mr-2 h-4 w-4" /> Enviar Arquivo
+                           </Button>
+                           <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
+                             <DialogTrigger asChild>
+                               <Button variant="outline" className="w-full">
+                                 <Camera className="mr-2 h-4 w-4" /> Usar Câmera
+                               </Button>
+                             </DialogTrigger>
+                             <DialogContent className="max-w-xl">
+                               <DialogHeader>
+                                 <DialogTitle>Tirar Foto do Gabarito</DialogTitle>
+                               </DialogHeader>
+                               <div className="space-y-4">
+                                 <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay muted />
+                                  {hasCameraPermission === false && (
+                                    <Alert variant="destructive">
+                                      <AlertCircle className="h-4 w-4" />
+                                      <AlertTitle>Câmera não acessível</AlertTitle>
+                                      <AlertDescription>
+                                        Por favor, permita o acesso à câmera nas configurações do seu navegador.
+                                      </AlertDescription>
+                                    </Alert>
+                                  )}
+                               </div>
+                               <DialogFooter>
+                                 <Button variant="outline" onClick={toggleCameraFacingMode}>
+                                    <RefreshCw className="mr-2 h-4 w-4"/> Alternar Câmera
+                                 </Button>
+                                 <Button variant="secondary" onClick={() => setIsCameraOpen(false)}>Cancelar</Button>
+                                 <Button onClick={takePicture} disabled={!hasCameraPermission}>
+                                    <Camera className="mr-2 h-4 w-4" /> Tirar Foto
+                                 </Button>
+                               </DialogFooter>
+                             </DialogContent>
+                           </Dialog>
+                        </div>
+                        {templateImage && (
+                          <Button onClick={handleExtractFromImage} disabled={isExtracting} className="w-full mt-2">
+                            {isExtracting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            {isExtracting ? 'Extraindo...' : 'Extrair Respostas da Imagem'}
+                          </Button>
+                        )}
+                    </div>
+                  </div>
+
+                  <div className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-6 border-t pt-4">
                     <h3 className="text-lg font-medium">Questões</h3>
                     {fields.map((field, index) => (
                       <Card key={field.id} className="relative p-4">
@@ -819,5 +934,3 @@ export default function Home() {
     </div>
   );
 }
-
-    

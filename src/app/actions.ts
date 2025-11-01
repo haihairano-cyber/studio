@@ -2,6 +2,7 @@
 
 import { processImageAndExtractAnswers } from '@/ai/flows/process-image-and-extract-answers';
 import { calculateGrades } from '@/ai/flows/calculate-grades-from-processed-answers';
+import { extractKeyFromImage } from '@/ai/flows/extract-key-from-image';
 import type { GradingResult, DetailedResult } from '@/lib/types';
 
 export async function gradeExamAction(
@@ -32,4 +33,15 @@ export async function gradeExamAction(
     console.error('Error in gradeExamAction:', error);
     return null;
   }
+}
+
+
+export async function extractAnswersFromKeyImageAction(photoDataUri: string): Promise<string[] | null> {
+    try {
+        const { extractedAnswers } = await extractKeyFromImage({ photoDataUri });
+        return extractedAnswers;
+    } catch (error) {
+        console.error('Error in extractAnswersFromKeyImageAction:', error);
+        return null;
+    }
 }
