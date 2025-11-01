@@ -208,13 +208,23 @@ export default function Home() {
   }
   
   const handleFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImage(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            setImage(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+    } else if (file.type === 'application/pdf') {
+        // Handle PDF files - for now, just show a message
+        toast({
+            title: 'Arquivo PDF selecionado',
+            description: 'A funcionalidade de processamento de PDF será implementada.',
+        });
+        setImage(null); // Or a PDF icon placeholder
+    }
     setResults(null);
   }
+
 
   const handleImageDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -318,7 +328,7 @@ export default function Home() {
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-gray-900">
       <Header />
       <main className="flex-grow container mx-auto p-4 md:p-8">
         <div className="max-w-4xl mx-auto space-y-8">
@@ -525,14 +535,14 @@ export default function Home() {
                   onDragOver={(e) => e.preventDefault()}
                   onClick={() => document.getElementById('file-upload')?.click()}
                 >
-                  <input id="file-upload" type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                  <input id="file-upload" type="file" className="hidden" accept="image/*,application/pdf" onChange={handleImageChange} />
                   {image ? (
                     <Image src={image} alt="Preview" fill className="object-contain rounded-lg p-2" />
                   ) : (
                     <div className="text-center text-muted-foreground">
                       <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
                       <p className="mt-2 font-semibold text-gray-600 dark:text-gray-300">Clique para enviar ou arraste e solte</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, ou WEBP</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, WEBP ou PDF</p>
                     </div>
                   )}
                 </div>
@@ -806,7 +816,8 @@ export default function Home() {
 
         </div>
       </main>
-      <div className="fixed inset-0 -z-10 h-full w-full bg-transparent"></div>
     </div>
   );
 }
+
+    
