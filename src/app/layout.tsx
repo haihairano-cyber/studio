@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 export const metadata: Metadata = {
   title: 'ProvaFácil',
   description: 'Corrija provas de forma fácil e rápida com a ajuda de IA.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
