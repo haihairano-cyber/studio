@@ -2,7 +2,7 @@
   "name": "ProvaFácil",
   "short_name": "ProvaFácil",
   "description": "Corrija provas de forma fácil e rápida com a ajuda de IA.",
-  "id": "/?source=pwa",
+  "id": "/",
   "start_url": "/",
   "scope": "/",
   "lang": "pt-BR",
