@@ -25,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const templateFormSchema = z.object({
   id: z.string().optional(),
@@ -300,7 +301,7 @@ export default function Home() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setIsFormOpen(true)}>
+                <Button variant="outline" size="sm" onClick={openNewForm}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Novo
                 </Button>
                 <Dialog>
