@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { UploadCloud, PlusCircle, Loader2, CheckCircle, XCircle, AlertCircle, BookCopy, FileImage, ClipboardCheck, Trash2, Edit, Plus, X, Camera, RotateCcw, AlertOctagon, Save, RefreshCw } from 'lucide-react';
+import { UploadCloud, PlusCircle, Loader2, CheckCircle, XCircle, AlertCircle, BookCopy, FileImage, ClipboardCheck, Trash2, Edit, Plus, X, Camera, RotateCcw, AlertOctagon, Save, RefreshCw, ScanLine } from 'lucide-react';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -85,11 +85,18 @@ export default function Home() {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: facingMode }
+        video: { 
+          facingMode: { ideal: facingMode },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
       });
       setHasCameraPermission(true);
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play().catch(console.error);
+        };
       }
     } catch (error) {
       console.error('Error accessing camera:', error);
@@ -219,13 +226,6 @@ export default function Home() {
             setImage(e.target?.result as string);
         };
         reader.readAsDataURL(file);
-    } else if (file.type === 'application/pdf') {
-        // Handle PDF files - for now, just show a message
-        toast({
-            title: 'Arquivo PDF selecionado',
-            description: 'A funcionalidade de processamento de PDF será implementada.',
-        });
-        setImage(null); // Or a PDF icon placeholder
     }
     setResults(null);
   }
@@ -286,14 +286,14 @@ export default function Home() {
   };
 
   const takePicture = () => {
-    if (videoRef.current) {
+    if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
       const canvas = document.createElement('canvas');
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
       const context = canvas.getContext('2d');
       if (context) {
         context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        const dataUri = canvas.toDataURL('image/jpeg');
+        const dataUri = canvas.toDataURL('image/jpeg', 0.85);
 
         if(isFormOpen) {
           setTemplateImage(dataUri);
@@ -303,6 +303,12 @@ export default function Home() {
         }
       }
       setIsCameraOpen(false);
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Câmera não pronta',
+        description: 'Aguarde o vídeo carregar antes de tirar a foto.',
+      });
     }
   };
 
@@ -318,6 +324,10 @@ export default function Home() {
       const result = await gradeExamAction(image, template.answerKey, template.points);
       if (result && result.grade) {
         setResults(result);
+        toast({
+          title: 'Correção concluída!',
+          description: `Score: ${result.grade.score.toFixed(1)}%`,
+        });
       } else {
         throw new Error('A resposta da IA foi inválida.');
       }
@@ -326,7 +336,7 @@ export default function Home() {
       toast({
         variant: 'destructive',
         title: 'Erro na Correção',
-        description: 'Não foi possível processar a imagem. Tente novamente com uma imagem mais nítida.',
+        description: 'Não foi possível ler o cartão. Tente uma foto mais nítida e bem iluminada.',
       });
     } finally {
       setIsProcessing(false);
@@ -378,20 +388,20 @@ export default function Home() {
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-grow container mx-auto p-4 md:p-8">
         <div className="max-w-4xl mx-auto space-y-8">
-          <Card className="shadow-lg animation-fade-in-up bg-white/60 dark:bg-card/60 backdrop-blur-lg border-blue-100 dark:border-blue-900/20">
+          <Card className="shadow-lg animation-fade-in-up border-primary/20">
             <CardHeader>
               <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg text-white shadow-md">
+                  <div className="p-3 bg-primary rounded-lg text-primary-foreground shadow-md">
                     <BookCopy className="w-8 h-8" />
                   </div>
                   <div>
-                    <CardTitle className="text-2xl font-headline text-gray-800 dark:text-gray-100">Passo 1: Gabarito</CardTitle>
-                    <CardDescription className="text-gray-600 dark:text-gray-400">Selecione um gabarito ou crie um novo para começar.</CardDescription>
+                    <CardTitle className="text-2xl">Passo 1: Gabarito</CardTitle>
+                    <CardDescription>Selecione um gabarito para começar.</CardDescription>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 self-end sm:self-center">
@@ -423,7 +433,7 @@ export default function Home() {
                                     <AlertDialogHeader>
                                       <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        Essa ação não pode ser desfeita. Isso irá apagar permanentemente o gabarito.
+                                        Essa ação não pode ser desfeita.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
@@ -435,11 +445,10 @@ export default function Home() {
                             </div>
                           </div>
                         ))}
-                         {templates.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhum gabarito encontrado.</p>}
                       </div>
                     </DialogContent>
                   </Dialog>
-                  <Button onClick={openNewForm} className="bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-md hover:from-blue-600 hover:to-blue-800 transition-all">
+                  <Button onClick={openNewForm} className="shadow-md">
                     <PlusCircle className="mr-2 h-4 w-4" /> Criar Novo
                   </Button>
                 </div>
@@ -462,7 +471,7 @@ export default function Home() {
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>Nenhum gabarito encontrado.</AlertTitle>
                   <AlertDescription>
-                    Crie seu primeiro gabarito para começar a corrigir as provas.
+                    Crie seu primeiro gabarito para começar.
                   </AlertDescription>
                 </Alert>
               )}
@@ -474,7 +483,7 @@ export default function Home() {
               <DialogHeader>
                 <DialogTitle>{editingTemplate ? 'Editar' : 'Criar Novo'} Gabarito</DialogTitle>
                 <DialogDescription>
-                  Preencha as informações ou envie uma imagem para gerar um novo modelo de prova.
+                  Preencha os dados ou extraia de uma imagem.
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
@@ -487,116 +496,83 @@ export default function Home() {
                         <FormItem>
                           <FormLabel>Nome do Gabarito</FormLabel>
                           <FormControl>
-                            <Input placeholder="Ex: Prova de Biologia 1º Trimestre" {...field} />
+                            <Input placeholder="Ex: Prova de Biologia" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                     <div>
-                        <Label>Gerar a partir de imagem</Label>
+                        <Label>Extrair de imagem (opcional)</Label>
                         <div 
-                          className="relative flex items-center justify-center w-full h-48 mt-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                          className="relative flex items-center justify-center w-full h-32 mt-2 border-2 border-dashed border-muted rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
                           onClick={() => document.getElementById('template-file-upload')?.click()}
                         >
-                          <input id="template-file-upload" type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => e.target.files && handleTemplateFile(e.target.files[0])} />
+                          <input id="template-file-upload" type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files && handleTemplateFile(e.target.files[0])} />
                           {templateImage ? (
                             <Image src={templateImage} alt="Preview do Gabarito" fill className="object-contain rounded-lg p-2" />
                           ) : (
                             <div className="text-center text-muted-foreground">
-                              <UploadCloud className="mx-auto h-10 w-10 text-gray-400" />
-                              <p className="mt-2 text-sm font-semibold text-gray-600 dark:text-gray-300">Clique para enviar ou arraste</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG ou PDF</p>
+                              <UploadCloud className="mx-auto h-8 w-8" />
+                              <p className="mt-1 text-xs">Clique para enviar</p>
                             </div>
                           )}
                         </div>
                         <div className="grid grid-cols-2 gap-2 mt-2">
-                           <Button type="button" onClick={() => document.getElementById('template-file-upload')?.click()} className="w-full" variant="outline">
-                               <UploadCloud className="mr-2 h-4 w-4" /> Enviar Arquivo
+                           <Button type="button" onClick={() => document.getElementById('template-file-upload')?.click()} variant="outline" size="sm">
+                               <UploadCloud className="mr-2 h-4 w-4" /> Arquivo
                            </Button>
-                           <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
-                             <DialogTrigger asChild>
-                               <Button variant="outline" className="w-full">
-                                 <Camera className="mr-2 h-4 w-4" /> Usar Câmera
-                               </Button>
-                             </DialogTrigger>
-                             <DialogContent className="max-w-xl">
-                               <DialogHeader>
-                                 <DialogTitle>Tirar Foto do Gabarito</DialogTitle>
-                               </DialogHeader>
-                               <div className="space-y-4">
-                                 <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay muted />
-                                  {hasCameraPermission === false && (
-                                    <Alert variant="destructive">
-                                      <AlertCircle className="h-4 w-4" />
-                                      <AlertTitle>Câmera não acessível</AlertTitle>
-                                      <AlertDescription>
-                                        Por favor, permita o acesso à câmera nas configurações do seu navegador.
-                                      </AlertDescription>
-                                    </Alert>
-                                  )}
-                               </div>
-                               <DialogFooter>
-                                 <Button variant="outline" onClick={toggleCameraFacingMode}>
-                                    <RefreshCw className="mr-2 h-4 w-4"/> Alternar Câmera
-                                 </Button>
-                                 <Button variant="secondary" onClick={() => setIsCameraOpen(false)}>Cancelar</Button>
-                                 <Button onClick={takePicture} disabled={!hasCameraPermission}>
-                                    <Camera className="mr-2 h-4 w-4" /> Tirar Foto
-                                 </Button>
-                               </DialogFooter>
-                             </DialogContent>
-                           </Dialog>
+                           <Button variant="outline" size="sm" onClick={() => { setIsCameraOpen(true); }}>
+                             <Camera className="mr-2 h-4 w-4" /> Câmera
+                           </Button>
                         </div>
                         {templateImage && (
-                          <Button onClick={handleExtractFromImage} disabled={isExtracting} className="w-full mt-2">
-                            {isExtracting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                            {isExtracting ? 'Extraindo...' : 'Extrair Respostas da Imagem'}
+                          <Button onClick={handleExtractFromImage} disabled={isExtracting} className="w-full mt-2" size="sm">
+                            {isExtracting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Extrair Gabarito'}
                           </Button>
                         )}
                     </div>
                   </div>
 
-                  <div className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-6 border-t pt-4">
-                    <h3 className="text-lg font-medium">Questões</h3>
+                  <div className="flex-grow overflow-y-auto pr-2 space-y-4 border-t pt-4">
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Questões</h3>
                     {fields.map((field, index) => (
-                      <Card key={field.id} className="relative p-4">
+                      <Card key={field.id} className="relative p-3">
                         <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="absolute top-2 right-2 h-6 w-6"
+                            className="absolute top-1 right-1 h-6 w-6 text-destructive"
                             onClick={() => remove(index)}
                             disabled={fields.length <= 1}
                           >
-                            <XCircle className="h-4 w-4 text-destructive" />
+                            <X className="h-4 w-4" />
                           </Button>
                         <div className="flex gap-4 items-start">
-                          <div className="font-bold text-lg">{index + 1}.</div>
-                          <div className="flex-grow space-y-4">
+                          <div className="font-bold">{index + 1}.</div>
+                          <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name={`questions.${index}.answer`}
                               render={({ field: radioField }) => (
                                 <FormItem>
-                                  <FormLabel>Resposta Correta</FormLabel>
+                                  <FormLabel className="text-xs">Resposta</FormLabel>
                                   <FormControl>
                                     <RadioGroup
                                       onValueChange={radioField.onChange}
                                       defaultValue={radioField.value}
-                                      className="flex flex-wrap gap-4"
+                                      className="flex flex-wrap gap-2"
                                     >
-                                      {form.watch(`questions.${index}.options`).map((option) => (
-                                        <FormItem key={option} className="flex items-center space-x-2">
+                                      {['A', 'B', 'C', 'D', 'E'].map((option) => (
+                                        <FormItem key={option} className="flex items-center space-x-1">
                                           <FormControl>
                                             <RadioGroupItem value={option} id={`${field.id}-${option}`}/>
                                           </FormControl>
-                                          <Label htmlFor={`${field.id}-${option}`}>{option}</Label>
+                                          <Label htmlFor={`${field.id}-${option}`} className="text-xs">{option}</Label>
                                         </FormItem>
                                       ))}
                                     </RadioGroup>
                                   </FormControl>
-                                  <FormMessage />
                                 </FormItem>
                               )}
                             />
@@ -605,11 +581,10 @@ export default function Home() {
                               name={`questions.${index}.points`}
                               render={({ field: pointsField }) => (
                                 <FormItem>
-                                  <FormLabel>Pontos</FormLabel>
+                                  <FormLabel className="text-xs">Pontos</FormLabel>
                                   <FormControl>
-                                    <Input type="number" step="0.5" {...pointsField} />
+                                    <Input type="number" step="0.5" {...pointsField} className="h-8" />
                                   </FormControl>
-                                  <FormMessage />
                                 </FormItem>
                               )}
                             />
@@ -617,13 +592,13 @@ export default function Home() {
                         </div>
                       </Card>
                     ))}
-                     <Button type="button" variant="outline" onClick={() => append(defaultQuestion)}>
+                     <Button type="button" variant="outline" size="sm" onClick={() => append(defaultQuestion)} className="w-full">
                         <Plus className="mr-2 h-4 w-4" /> Adicionar Questão
                     </Button>
                   </div>
                   <DialogFooter>
                     <DialogClose asChild><Button type="button" variant="ghost">Cancelar</Button></DialogClose>
-                    <Button type="submit">Salvar Gabarito</Button>
+                    <Button type="submit">Salvar</Button>
                   </DialogFooter>
                 </form>
               </Form>
@@ -631,116 +606,122 @@ export default function Home() {
           </Dialog>
 
           {selectedTemplate && (
-            <Card className="shadow-lg animation-fade-in-up bg-white/60 dark:bg-card/60 backdrop-blur-lg border-blue-100 dark:border-blue-900/20" style={{animationDelay: '0.1s'}}>
+            <Card className="shadow-lg animation-fade-in-up border-primary/20">
               <CardHeader>
                 <div className="flex items-center gap-3">
-                   <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg text-white shadow-md">
+                   <div className="p-3 bg-primary rounded-lg text-primary-foreground shadow-md">
                     <FileImage className="w-8 h-8" />
                    </div>
                   <div>
-                    <CardTitle className="text-2xl font-headline text-gray-800 dark:text-gray-100">Passo 2: Cartão de Respostas</CardTitle>
-                    <CardDescription className="text-gray-600 dark:text-gray-400">Envie uma foto do cartão de respostas do aluno para correção.</CardDescription>
+                    <CardTitle className="text-2xl">Passo 2: Escanear Cartão</CardTitle>
+                    <CardDescription>Envie ou tire uma foto do cartão de respostas preenchido.</CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div 
-                  className="relative flex items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  className="relative flex items-center justify-center w-full min-h-[300px] border-2 border-dashed border-muted rounded-xl cursor-pointer hover:bg-muted/30 transition-all overflow-hidden"
                   onDrop={handleImageDrop}
                   onDragOver={(e) => e.preventDefault()}
                   onClick={() => document.getElementById('file-upload')?.click()}
                 >
-                  <input id="file-upload" type="file" className="hidden" accept="image/*,application/pdf" onChange={handleImageChange} />
+                  <input id="file-upload" type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
                   {image ? (
-                    <Image src={image} alt="Preview" fill className="object-contain rounded-lg p-2" />
+                    <div className="relative w-full h-full min-h-[300px]">
+                      <Image src={image} alt="Preview" fill className="object-contain p-2" />
+                      {isProcessing && (
+                        <div className="absolute inset-0 bg-primary/20 backdrop-blur-[2px]">
+                          <div className="absolute top-0 left-0 w-full h-1 bg-primary shadow-[0_0_15px_#64B5F6] animate-scan" />
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    <div className="text-center text-muted-foreground">
-                      <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
-                      <p className="mt-2 font-semibold text-gray-600 dark:text-gray-300">Clique para enviar ou arraste e solte</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, WEBP ou PDF</p>
+                    <div className="text-center p-8">
+                      <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <p className="mt-2 font-medium">Arraste ou clique para enviar</p>
+                      <p className="text-xs text-muted-foreground mt-1">PNG, JPG, WEBP</p>
                     </div>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                   <Button onClick={() => document.getElementById('file-upload')?.click()} className="w-full">
-                       <UploadCloud className="mr-2 h-4 w-4" /> Enviar Arquivo
+                <div className="grid grid-cols-2 gap-3">
+                   <Button onClick={() => document.getElementById('file-upload')?.click()} variant="outline">
+                       <UploadCloud className="mr-2 h-4 w-4" /> Galeria
                    </Button>
-                   <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
-                     <DialogTrigger asChild>
-                       <Button variant="outline" className="w-full">
-                         <Camera className="mr-2 h-4 w-4" /> Usar Câmera
-                       </Button>
-                     </DialogTrigger>
-                     <DialogContent className="max-w-xl">
-                       <DialogHeader>
-                         <DialogTitle>Tirar Foto</DialogTitle>
-                       </DialogHeader>
-                       <div className="space-y-4">
-                         <video ref={videoRef} className="w-full aspect-video rounded-md bg-muted" autoPlay muted />
-                          {hasCameraPermission === false && (
-                            <Alert variant="destructive">
-                              <AlertCircle className="h-4 w-4" />
-                              <AlertTitle>Câmera não acessível</AlertTitle>
-                              <AlertDescription>
-                                Por favor, permita o acesso à câmera nas configurações do seu navegador.
-                              </AlertDescription>
-                            </Alert>
-                          )}
-                       </div>
-                       <DialogFooter>
-                         <Button variant="outline" onClick={toggleCameraFacingMode}>
-                            <RefreshCw className="mr-2 h-4 w-4"/> Alternar Câmera
-                         </Button>
-                         <Button variant="secondary" onClick={() => setIsCameraOpen(false)}>Cancelar</Button>
-                         <Button onClick={takePicture} disabled={!hasCameraPermission}>
-                            <Camera className="mr-2 h-4 w-4" /> Tirar Foto
-                         </Button>
-                       </DialogFooter>
-                     </DialogContent>
-                   </Dialog>
+                   <Button variant="outline" onClick={() => setIsCameraOpen(true)}>
+                      <Camera className="mr-2 h-4 w-4" /> Câmera
+                   </Button>
                 </div>
-                 {image && (
-                  <Button variant="outline" onClick={() => { setImage(null); setResults(null); }} className="w-full">
-                    <RotateCcw className="mr-2 h-4 w-4" /> Limpar Imagem
+                {image && !isProcessing && (
+                  <Button variant="ghost" onClick={() => { setImage(null); setResults(null); }} className="w-full text-destructive">
+                    <RotateCcw className="mr-2 h-4 w-4" /> Trocar Imagem
                   </Button>
                 )}
-                <Button onClick={handleGrade} disabled={!image || isProcessing} className="w-full bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-md hover:from-blue-600 hover:to-blue-800 transition-all text-lg py-6">
-                  {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  {isProcessing ? 'Corrigindo...' : 'Corrigir Prova'}
+                <Button 
+                  onClick={handleGrade} 
+                  disabled={!image || isProcessing} 
+                  size="lg"
+                  className="w-full text-lg h-14"
+                >
+                  {isProcessing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <ScanLine className="mr-2 h-5 w-5" />}
+                  {isProcessing ? 'Corrigindo...' : 'Corrigir Agora'}
                 </Button>
               </CardContent>
             </Card>
           )}
 
-          {isProcessing && (
-            <div className="flex justify-center items-center p-8">
-                <Loader2 className="h-16 w-16 animate-spin text-primary" />
-            </div>
-          )}
+          <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
+            <DialogContent className="max-w-xl">
+              <DialogHeader>
+                <DialogTitle>Tirar Foto</DialogTitle>
+                <DialogDescription>Aponte para o cartão de respostas e mantenha estável.</DialogDescription>
+              </DialogHeader>
+              <div className="relative aspect-[3/4] rounded-lg bg-black overflow-hidden">
+                <video 
+                  ref={videoRef} 
+                  className="w-full h-full object-cover" 
+                  autoPlay 
+                  muted 
+                  playsInline 
+                />
+                <div className="absolute inset-4 border-2 border-white/30 rounded-lg pointer-events-none border-dashed" />
+              </div>
+              <DialogFooter className="flex justify-between sm:justify-between items-center">
+                <Button variant="outline" size="icon" onClick={toggleCameraFacingMode}>
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={() => setIsCameraOpen(false)}>Cancelar</Button>
+                  <Button onClick={takePicture} disabled={!hasCameraPermission} size="lg">
+                    <Camera className="mr-2 h-5 w-5" /> Capturar
+                  </Button>
+                </div>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {results && (
-            <Card className="shadow-lg animation-fade-in-up bg-white/60 dark:bg-card/60 backdrop-blur-lg border-blue-100 dark:border-blue-900/20" style={{animationDelay: '0.2s'}}>
+            <Card className="shadow-lg animation-fade-in-up border-accent/20">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                     <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg text-white shadow-md">
+                     <div className="p-3 bg-accent rounded-lg text-accent-foreground shadow-md">
                         <ClipboardCheck className="w-8 h-8" />
                      </div>
                     <div>
-                      <CardTitle className="text-2xl font-headline text-gray-800 dark:text-gray-100">Passo 3: Resultados</CardTitle>
-                      <CardDescription className="text-gray-600 dark:text-gray-400">Confira o desempenho do aluno.</CardDescription>
+                      <CardTitle className="text-2xl">Resultados</CardTitle>
+                      <CardDescription>Confira o desempenho detalhado.</CardDescription>
                     </div>
                   </div>
                    <Dialog open={isSaveExamDialogOpen} onOpenChange={setIsSaveExamDialogOpen}>
                     <DialogTrigger asChild>
                       <Button variant="outline">
-                        <Save className="mr-2 h-4 w-4" /> Salvar Correção
+                        <Save className="mr-2 h-4 w-4" /> Salvar
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Salvar Correção</DialogTitle>
-                        <DialogDescription>Digite o nome do aluno para salvar o resultado da prova.</DialogDescription>
+                        <DialogDescription>Digite o nome do aluno.</DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
                         <Label htmlFor="studentName">Nome do Aluno</Label>
@@ -748,7 +729,7 @@ export default function Home() {
                           id="studentName"
                           value={studentName}
                           onChange={(e) => setStudentName(e.target.value)}
-                          placeholder="Ex: João da Silva"
+                          placeholder="Ex: Maria Oliveira"
                         />
                       </div>
                       <DialogFooter>
@@ -761,59 +742,58 @@ export default function Home() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-100">Pontuação Final</h3>
-                  <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg space-y-4 border border-gray-200 dark:border-gray-700">
+                  <div className="p-4 bg-muted/30 rounded-xl space-y-4 border">
                     <div>
-                      <div className="flex justify-between mb-1 text-gray-700 dark:text-gray-300">
-                        <span className="font-medium">Pontuação Final ({results.grade.earnedPoints} / {results.grade.totalPoints} pts)</span>
-                        <span className="font-bold text-blue-600 dark:text-blue-400">{results.grade.score.toFixed(1)}%</span>
+                      <div className="flex justify-between mb-2">
+                        <span className="font-semibold text-lg">{results.grade.earnedPoints.toFixed(1)} / {results.grade.totalPoints.toFixed(1)} pts</span>
+                        <span className="font-bold text-xl text-primary">{results.grade.score.toFixed(1)}%</span>
                       </div>
-                      <Progress value={results.grade.score} className="h-2" />
+                      <Progress value={results.grade.score} className="h-3" />
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                        <div className="p-3 bg-white dark:bg-background/50 rounded-md shadow-sm">
-                            <p className="text-sm text-muted-foreground">Total de Questões</p>
-                            <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{results.grade.totalQuestions}</p>
+                    <div className="grid grid-cols-3 gap-3">
+                        <div className="p-3 bg-card rounded-lg text-center shadow-sm">
+                            <p className="text-[10px] uppercase text-muted-foreground mb-1">Total</p>
+                            <p className="text-xl font-bold">{results.grade.totalQuestions}</p>
                         </div>
-                        <div className="p-3 bg-white dark:bg-background/50 rounded-md shadow-sm">
-                            <p className="text-sm text-muted-foreground">Corretas</p>
-                            <p className="text-2xl font-bold text-green-500">{results.grade.correctAnswers}</p>
+                        <div className="p-3 bg-card rounded-lg text-center shadow-sm">
+                            <p className="text-[10px] uppercase text-muted-foreground mb-1">Acertos</p>
+                            <p className="text-xl font-bold text-green-600">{results.grade.correctAnswers}</p>
                         </div>
-                        <div className="p-3 bg-white dark:bg-background/50 rounded-md shadow-sm">
-                            <p className="text-sm text-muted-foreground">Incorretas / Anuladas</p>
-                            <p className="text-2xl font-bold text-red-500">{results.grade.incorrectAnswers}</p>
+                        <div className="p-3 bg-card rounded-lg text-center shadow-sm">
+                            <p className="text-[10px] uppercase text-muted-foreground mb-1">Erros</p>
+                            <p className="text-xl font-bold text-destructive">{results.grade.incorrectAnswers}</p>
                         </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-100">Respostas Detalhadas</h3>
-                  <div className="border rounded-lg overflow-hidden bg-white dark:bg-card">
+                  <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Detalhamento por Questão</h3>
+                  <div className="border rounded-lg overflow-hidden">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[80px]">Questão</TableHead>
-                          <TableHead>Resposta do Aluno</TableHead>
+                          <TableHead className="w-[60px]">Nº</TableHead>
+                          <TableHead>Resposta</TableHead>
                           <TableHead>Gabarito</TableHead>
-                          <TableHead>Pontos</TableHead>
-                          <TableHead className="text-right">Resultado</TableHead>
+                          <TableHead className="text-right">Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {results.details.map((item) => (
-                          <TableRow key={item.question} className={!item.isCorrect ? (item.studentAnswer === 'ANULADA' ? 'bg-amber-400/10 dark:bg-amber-900/20' : 'bg-red-400/10 dark:bg-red-900/20') : ''}>
-                            <TableCell className="font-medium">{item.question}</TableCell>
-                            <TableCell>{item.studentAnswer || '-'}</TableCell>
-                            <TableCell>{item.correctAnswer}</TableCell>
-                            <TableCell>{item.points}</TableCell>
+                          <TableRow key={item.question} className={!item.isCorrect ? 'bg-destructive/5' : ''}>
+                            <TableCell className="font-bold">{item.question}</TableCell>
+                            <TableCell className={item.studentAnswer === 'ANULADA' ? 'text-amber-600 font-medium' : ''}>
+                              {item.studentAnswer || '-'}
+                            </TableCell>
+                            <TableCell className="font-medium">{item.correctAnswer}</TableCell>
                             <TableCell className="text-right">
                               {item.studentAnswer === 'ANULADA' ? (
-                                <AlertOctagon className="h-5 w-5 text-amber-500 inline-block" />
+                                <AlertCircle className="h-5 w-5 text-amber-500 inline-block" />
                               ) : item.isCorrect ? (
                                 <CheckCircle className="h-5 w-5 text-green-500 inline-block" />
                               ) : (
-                                <XCircle className="h-5 w-5 text-red-500 inline-block" />
+                                <XCircle className="h-5 w-5 text-destructive inline-block" />
                               )}
                             </TableCell>
                           </TableRow>
@@ -827,73 +807,66 @@ export default function Home() {
           )}
 
           {savedExams.length > 0 && (
-            <Card className="shadow-lg animation-fade-in-up bg-white/60 dark:bg-card/60 backdrop-blur-lg border-blue-100 dark:border-blue-900/20" style={{animationDelay: '0.3s'}}>
+            <Card className="shadow-lg border-muted/50">
               <CardHeader>
-                  <CardTitle className="text-2xl font-headline text-gray-800 dark:text-gray-100">Correções Salvas</CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-400">Veja as provas que você já corrigiu e salvou.</CardDescription>
+                  <CardTitle className="text-xl">Histórico de Correções</CardTitle>
               </CardHeader>
               <CardContent>
                  <Accordion type="single" collapsible className="w-full">
                     {savedExams.map((exam) => (
-                      <AccordionItem value={exam.id} key={exam.id}>
-                        <AccordionTrigger>
-                          <div className="flex justify-between w-full pr-4">
-                            <span className='font-bold'>{exam.studentName}</span>
-                            <span className='text-sm text-muted-foreground'>{new Date(exam.correctionDate).toLocaleDateString()}</span>
+                      <AccordionItem value={exam.id} key={exam.id} className="border-b-0 mb-2">
+                        <AccordionTrigger className="hover:no-underline bg-muted/20 px-4 rounded-lg">
+                          <div className="flex justify-between w-full pr-4 text-left">
+                            <span className="font-bold truncate max-w-[150px] sm:max-w-none">{exam.studentName}</span>
+                            <span className="text-sm font-bold text-primary">{exam.grade.score.toFixed(0)}%</span>
                           </div>
                         </AccordionTrigger>
-                        <AccordionContent className="space-y-6">
+                        <AccordionContent className="pt-4 px-4 pb-4 border rounded-b-lg -mt-2">
                            <div className="flex flex-col md:flex-row gap-6">
-                              <div className="w-full md:w-1/3">
-                                <h4 className="font-semibold mb-2">Cartão Resposta</h4>
-                                 <div className="relative aspect-[3/4] rounded-md overflow-hidden border">
-                                    <Image src={exam.image} alt={`Prova de ${exam.studentName}`} fill className="object-contain" />
-                                 </div>
+                              <div className="w-full md:w-1/3 space-y-2">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase">Cartão Resposta</p>
+                                <div className="relative aspect-[3/4] rounded-md overflow-hidden border shadow-inner bg-muted/10">
+                                  <Image src={exam.image} alt="Prova" fill className="object-contain" />
+                                </div>
                               </div>
                               <div className="w-full md:w-2/3 space-y-4">
-                                <h4 className="font-semibold">Resumo</h4>
-                                 <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg space-y-4 border border-gray-200 dark:border-gray-700">
-                                    <div>
-                                      <div className="flex justify-between mb-1">
-                                        <span className="font-medium">Pontuação Final ({exam.grade.earnedPoints} / {exam.grade.totalPoints} pts)</span>
-                                        <span className="font-bold text-blue-600 dark:text-blue-400">{exam.grade.score.toFixed(1)}%</span>
-                                      </div>
-                                      <Progress value={exam.grade.score} className="h-2" />
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs font-semibold text-muted-foreground uppercase">Resumo da Avaliação</p>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Apagar correção?</AlertDialogTitle>
+                                        <AlertDialogDescription>Esta ação é irreversível.</AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteSavedExam(exam.id)}>Confirmar</AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                                 <div className="p-3 bg-muted/30 rounded-lg space-y-3 border">
+                                    <div className="flex justify-between">
+                                      <span className="font-bold text-lg">{exam.grade.score.toFixed(1)}%</span>
+                                      <span className="text-sm text-muted-foreground">{new Date(exam.correctionDate).toLocaleDateString()}</span>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2 text-center">
-                                      <div className="p-2 bg-white dark:bg-background/50 rounded-md shadow-sm">
-                                        <p className="text-xs text-muted-foreground">Corretas</p>
-                                        <p className="text-lg font-bold text-green-500">{exam.grade.correctAnswers}</p>
-                                      </div>
-                                      <div className="p-2 bg-white dark:bg-background/50 rounded-md shadow-sm">
-                                        <p className="text-xs text-muted-foreground">Incorretas</p>
-                                        <p className="text-lg font-bold text-red-500">{exam.grade.incorrectAnswers}</p>
-                                      </div>
-                                      <div className="p-2 bg-white dark:bg-background/50 rounded-md shadow-sm">
-                                        <p className="text-xs text-muted-foreground">Total</p>
-                                        <p className="text-lg font-bold">{exam.grade.totalQuestions}</p>
-                                      </div>
-                                    </div>
+                                    <Progress value={exam.grade.score} className="h-2" />
                                  </div>
-                                <h4 className="font-semibold">Respostas Detalhadas</h4>
-                                 <div className="border rounded-lg overflow-auto max-h-60 bg-white dark:bg-card">
+                                 <div className="max-h-48 overflow-auto border rounded-md">
                                   <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead>Q</TableHead>
-                                        <TableHead>Aluno</TableHead>
-                                        <TableHead>Gabarito</TableHead>
-                                        <TableHead className='text-right'>Resultado</TableHead>
-                                      </TableRow>
-                                    </TableHeader>
                                     <TableBody>
                                       {exam.details.map((item) => (
-                                        <TableRow key={item.question} className={!item.isCorrect ? (item.studentAnswer === 'ANULADA' ? 'bg-amber-400/10 dark:bg-amber-900/20' : 'bg-red-400/10 dark:bg-red-900/20') : ''}>
-                                          <TableCell>{item.question}</TableCell>
-                                          <TableCell>{item.studentAnswer || '-'}</TableCell>
-                                          <TableCell>{item.correctAnswer}</TableCell>
-                                          <TableCell className="text-right">
-                                            {item.studentAnswer === 'ANULADA' ? <AlertOctagon className="h-5 w-5 text-amber-500 inline-block" /> : item.isCorrect ? <CheckCircle className="h-5 w-5 text-green-500 inline-block" /> : <XCircle className="h-5 w-5 text-red-500 inline-block" />}
+                                        <TableRow key={item.question} className="h-8">
+                                          <TableCell className="py-1 font-bold text-xs">{item.question}</TableCell>
+                                          <TableCell className="py-1 text-xs">{item.studentAnswer}</TableCell>
+                                          <TableCell className="py-1 text-xs font-medium">{item.correctAnswer}</TableCell>
+                                          <TableCell className="py-1 text-right">
+                                            {item.isCorrect ? <CheckCircle className="h-3 w-3 text-green-500 inline-block" /> : <XCircle className="h-3 w-3 text-destructive inline-block" />}
                                           </TableCell>
                                         </TableRow>
                                       ))}
@@ -902,25 +875,6 @@ export default function Home() {
                                 </div>
                               </div>
                            </div>
-                           <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="destructive" size="sm">
-                                  <Trash2 className="mr-2 h-4 w-4" /> Apagar Correção
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Essa ação não pode ser desfeita. Isso irá apagar permanentemente a correção da prova de {exam.studentName}.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteSavedExam(exam.id)}>Apagar</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
                         </AccordionContent>
                       </AccordionItem>
                     ))}
@@ -928,7 +882,6 @@ export default function Home() {
               </CardContent>
             </Card>
           )}
-
         </div>
       </main>
     </div>
